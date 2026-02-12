@@ -9,34 +9,44 @@ const keys = {
 };
 
 const GRAVITY = 0.78;
-const MOVE_SPEED = 4.2;
+const MOVE_SPEED = 3.57; // 15% slower than 4.2
 const JUMP_FORCE = -14.2;
 const FLOOR_Y = 440;
+
+const SAFE_GAP_MIN = 58;
+const SAFE_GAP_MAX = 110;
+const SAFE_PLATFORM_HEIGHT_MAX = 90;
 
 const LEVELS = [
   {
     id: 1,
     name: "Level 1",
-    baseSpeed: 3.1,
-    gapChance: 0.16,
-    platformChance: 0.34,
-    levelLength: 2700,
-    pipeX: 2300,
-    pipeWidth: 64,
-    pipeHeight: 86,
-    objective: "Get to the green pipe and press ↓",
+    baseSpeed: 3.0,
+    levelLength: 2550,
+    objective: "Reach the pipe and press ↓",
+    hasPipe: true,
+    hasFlag: false,
+    enemyCount: 3,
   },
   {
     id: 2,
     name: "Level 2",
-    baseSpeed: 3.9,
-    gapChance: 0.26,
-    platformChance: 0.45,
-    levelLength: 3200,
-    pipeX: null,
-    pipeWidth: 0,
-    pipeHeight: 0,
+    baseSpeed: 3.45,
+    levelLength: 2900,
+    objective: "Use the second pipe to descend",
+    hasPipe: true,
+    hasFlag: false,
+    enemyCount: 5,
+  },
+  {
+    id: 3,
+    name: "Level 3",
+    baseSpeed: 3.85,
+    levelLength: 3350,
     objective: "Reach the flag to win",
+    hasPipe: false,
+    hasFlag: true,
+    enemyCount: 7,
   },
 ];
 
@@ -58,8 +68,11 @@ const world = {
   won: false,
   transitioning: false,
   transitionTimer: 0,
+  nextLevelIndex: 0,
   currentLevelIndex: 0,
   chunks: [],
+  enemies: [],
+  pipe: null,
 };
 
 function currentLevel() {
@@ -76,29 +89,88 @@ function createChunk(startX, width, kind = "ground", heightOffset = 0) {
   };
 }
 
-function buildLevel(level) {
-  world.chunks = [];
-  world.offsetX = 0;
+function generateSafeTerrain(level) {
+  const chunks = [];
+  let x = -120;
 
-  let x = -100;
-  while (x < level.levelLength + 300) {
-    if (Math.random() < level.gapChance && x > 260 && x < level.levelLength - 180) {
-      x += 90 + Math.random() * 120;
-      continue;
-    }
+  while (x < level.levelLength + 420) {
+    const width = 180 + Math.random() * 180;
+    chunks.push(createChunk(x, width));
 
-    const width = 170 + Math.random() * 210;
-    world.chunks.push(createChunk(x, width));
-
-    if (Math.random() < level.platformChance) {
-      const platformWidth = 85 + Math.random() * 120;
-      const platformX = x + 25 + Math.random() * Math.max(20, width - 120);
-      const height = 95 + Math.random() * 120;
-      world.chunks.push(createChunk(platformX, platformWidth, "platform", height));
+    if (Math.random() < 0.44) {
+      const platformWidth = 90 + Math.random() * 105;
+      const platformX = x + 20 + Math.random() * Math.max(25, width - platformWidth - 20);
+      const platformHeight = 35 + Math.random() * (SAFE_PLATFORM_HEIGHT_MAX - 35);
+      chunks.push(createChunk(platformX, platformWidth, "platform", platformHeight));
     }
 
     x += width;
+    if (x < level.levelLength + 300) {
+      x += SAFE_GAP_MIN + Math.random() * (SAFE_GAP_MAX - SAFE_GAP_MIN);
+    }
   }
+
+  return chunks;
+}
+
+function findGroundChunkAt(chunks, targetX) {
+  return chunks.find((chunk) => chunk.kind === "ground" && targetX >= chunk.x + 12 && targetX <= chunk.x + chunk.width - 12);
+}
+
+function placePipeOnLand(level, chunks) {
+  if (!level.hasPipe) return null;
+
+  let candidateX = level.levelLength - 340;
+  let ground = findGroundChunkAt(chunks, candidateX);
+
+  if (!ground) {
+    const fallback = chunks
+      .filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength - 700)
+      .sort((a, b) => b.width - a.width)[0];
+
+    if (!fallback) return null;
+    candidateX = fallback.x + fallback.width * 0.5;
+    ground = fallback;
+  }
+
+  return {
+    x: Math.max(ground.x + 20, Math.min(candidateX, ground.x + ground.width - 84)),
+    width: 64,
+    height: 86,
+  };
+}
+
+function buildEnemies(level, chunks) {
+  const enemies = [];
+  const candidates = chunks
+    .filter((chunk) => chunk.kind === "ground" && chunk.width > 170 && chunk.x > 260 && chunk.x < level.levelLength - 220)
+    .sort((a, b) => a.x - b.x);
+
+  const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
+
+  for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
+    const chunk = candidates[i];
+    const margin = 24;
+    enemies.push({
+      x: chunk.x + margin + Math.random() * Math.max(8, chunk.width - margin * 2 - 20),
+      y: chunk.y - 30,
+      w: 32,
+      h: 30,
+      vx: Math.random() < 0.5 ? -1.25 : 1.25,
+      minX: chunk.x + margin,
+      maxX: chunk.x + chunk.width - margin - 32,
+      alive: true,
+    });
+  }
+
+  return enemies;
+}
+
+function buildLevel(level) {
+  world.offsetX = 0;
+  world.chunks = generateSafeTerrain(level);
+  world.pipe = placePipeOnLand(level, world.chunks);
+  world.enemies = buildEnemies(level, world.chunks);
 
   player.x = 180;
   player.y = FLOOR_Y - player.h;
@@ -113,6 +185,7 @@ function restartGame() {
   world.won = false;
   world.transitioning = false;
   world.transitionTimer = 0;
+  world.nextLevelIndex = 0;
   world.currentLevelIndex = 0;
   buildLevel(currentLevel());
 }
@@ -147,13 +220,67 @@ function resolveCollisions(previousY) {
   }
 }
 
+function updateEnemies() {
+  for (const enemy of world.enemies) {
+    if (!enemy.alive) continue;
+
+    enemy.x += enemy.vx;
+    if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
+      enemy.vx *= -1;
+      enemy.x = Math.max(enemy.minX, Math.min(enemy.maxX, enemy.x));
+    }
+  }
+}
+
+function playerEnemyWorldRect() {
+  return {
+    left: world.offsetX + player.x,
+    right: world.offsetX + player.x + player.w,
+    top: player.y,
+    bottom: player.y + player.h,
+  };
+}
+
+function handleEnemyCollisions(previousY) {
+  const playerRect = playerEnemyWorldRect();
+  const previousBottom = previousY + player.h;
+
+  for (const enemy of world.enemies) {
+    if (!enemy.alive) continue;
+
+    const enemyLeft = enemy.x;
+    const enemyRight = enemy.x + enemy.w;
+    const enemyTop = enemy.y;
+    const enemyBottom = enemy.y + enemy.h;
+
+    const touching =
+      playerRect.right > enemyLeft &&
+      playerRect.left < enemyRight &&
+      playerRect.bottom > enemyTop &&
+      playerRect.top < enemyBottom;
+
+    if (!touching) continue;
+
+    const stomped = player.vy > 0 && previousBottom <= enemyTop + 8;
+    if (stomped) {
+      enemy.alive = false;
+      player.vy = -9.5;
+      world.score += 30;
+      continue;
+    }
+
+    world.gameOver = true;
+    world.best = Math.max(world.best, Math.floor(world.score));
+    return;
+  }
+}
+
 function isAtPipe() {
-  const level = currentLevel();
-  if (!level.pipeX) return false;
+  if (!world.pipe) return false;
 
   const worldPlayerCenter = world.offsetX + player.x + player.w / 2;
-  const pipeLeft = level.pipeX;
-  const pipeRight = pipeLeft + level.pipeWidth;
+  const pipeLeft = world.pipe.x;
+  const pipeRight = pipeLeft + world.pipe.width;
   return player.onGround && worldPlayerCenter > pipeLeft - 20 && worldPlayerCenter < pipeRight + 20;
 }
 
@@ -164,7 +291,7 @@ function update() {
     world.transitionTimer -= 1;
     if (world.transitionTimer <= 0) {
       world.transitioning = false;
-      world.currentLevelIndex = 1;
+      world.currentLevelIndex = world.nextLevelIndex;
       buildLevel(currentLevel());
     }
     return;
@@ -192,6 +319,10 @@ function update() {
   player.y += player.vy;
 
   resolveCollisions(previousY);
+  updateEnemies();
+  handleEnemyCollisions(previousY);
+
+  if (world.gameOver) return;
 
   if (player.y > canvas.height + 120) {
     world.gameOver = true;
@@ -199,13 +330,14 @@ function update() {
     return;
   }
 
-  if (level.id === 1 && isAtPipe() && keys.down) {
+  if (level.hasPipe && isAtPipe() && keys.down) {
     world.transitioning = true;
-    world.transitionTimer = 75;
+    world.transitionTimer = 72;
+    world.nextLevelIndex = Math.min(LEVELS.length - 1, world.currentLevelIndex + 1);
     return;
   }
 
-  if (level.id === 2 && world.offsetX >= level.levelLength) {
+  if (level.hasFlag && world.offsetX >= level.levelLength) {
     world.won = true;
     world.best = Math.max(world.best, Math.floor(world.score));
   }
@@ -229,21 +361,20 @@ function drawChunk(chunk) {
 }
 
 function drawPipe() {
-  const level = currentLevel();
-  if (!level.pipeX) return;
+  if (!world.pipe) return;
 
-  const x = level.pipeX - world.offsetX;
-  const y = FLOOR_Y - level.pipeHeight;
+  const x = world.pipe.x - world.offsetX;
+  const y = FLOOR_Y - world.pipe.height;
 
   ctx.fillStyle = "#1f9a38";
-  ctx.fillRect(x, y + 10, level.pipeWidth, level.pipeHeight - 10);
+  ctx.fillRect(x, y + 10, world.pipe.width, world.pipe.height - 10);
   ctx.fillStyle = "#35c04f";
-  ctx.fillRect(x - 8, y, level.pipeWidth + 16, 16);
+  ctx.fillRect(x - 8, y, world.pipe.width + 16, 16);
 }
 
 function drawFlag() {
   const level = currentLevel();
-  if (level.id !== 2) return;
+  if (!level.hasFlag) return;
 
   const x = level.levelLength - world.offsetX;
   const poleY = FLOOR_Y - 150;
@@ -251,6 +382,23 @@ function drawFlag() {
   ctx.fillRect(x, poleY, 6, 150);
   ctx.fillStyle = "#f5d742";
   ctx.fillRect(x + 6, poleY + 8, 42, 24);
+}
+
+function drawEnemies() {
+  for (const enemy of world.enemies) {
+    if (!enemy.alive) continue;
+    const x = enemy.x - world.offsetX;
+
+    ctx.fillStyle = "#6e3f1f";
+    ctx.fillRect(x, enemy.y + 10, enemy.w, enemy.h - 10);
+
+    ctx.fillStyle = "#8f552f";
+    ctx.fillRect(x + 2, enemy.y, enemy.w - 4, 16);
+
+    ctx.fillStyle = "#1d1d1d";
+    ctx.fillRect(x + 8, enemy.y + 6, 4, 4);
+    ctx.fillRect(x + 20, enemy.y + 6, 4, 4);
+  }
 }
 
 function drawPlayer() {
@@ -277,7 +425,7 @@ function drawHUD() {
   const level = currentLevel();
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(14, 14, 345, 94);
+  ctx.fillRect(14, 14, 370, 94);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px Segoe UI";
@@ -286,7 +434,7 @@ function drawHUD() {
   ctx.fillText(`Best: ${world.best}`, 24, 66);
   ctx.fillText(`${level.name}: ${level.objective}`, 24, 91);
 
-  if (level.id === 1 && isAtPipe() && !world.transitioning) {
+  if (level.hasPipe && isAtPipe() && !world.transitioning) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
     ctx.fillRect(canvas.width / 2 - 170, 122, 340, 40);
     ctx.fillStyle = "#e3ffe3";
@@ -304,7 +452,7 @@ function drawHUD() {
     ctx.font = "bold 42px Segoe UI";
     ctx.fillText("Entering Pipe...", canvas.width / 2, canvas.height / 2 - 8);
     ctx.font = "24px Segoe UI";
-    ctx.fillText("Level 2 incoming", canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText(`Level ${world.nextLevelIndex + 1} incoming`, canvas.width / 2, canvas.height / 2 + 30);
     ctx.textAlign = "start";
   }
 
@@ -314,8 +462,8 @@ function drawHUD() {
 
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
-    ctx.font = "bold 48px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Both Levels!" : "You Fell!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.font = "bold 46px Segoe UI";
+    ctx.fillText(world.won ? "You Beat All 3 Levels!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";
@@ -331,6 +479,7 @@ function render() {
 
   drawPipe();
   drawFlag();
+  drawEnemies();
   drawPlayer();
   drawHUD();
 }

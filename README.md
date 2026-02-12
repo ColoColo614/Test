@@ -12,14 +12,15 @@ Then open `http://localhost:8000`.
 
 ## How to play
 
-- Survive jumps across gaps and platforms in **Level 1**.
-- Reach the pipe and press `↓` (Down Arrow) to enter it.
-- You will start **Level 2**.
-- Reach the flag in Level 2 to win.
+- Survive jumps across gaps and platforms in **Level 1** and enter the pipe with `↓`.
+- Survive **Level 2** and enter its pipe with `↓`.
+- Clear **Level 3** by reaching the flag.
+- Avoid enemies: touching one from the side causes a loss.
+- Defeat enemies by landing on top of them.
 
 ## Controls
 
-- `←` / `→`: Move
+- `←` / `→`: Move (15% slower than before for more control)
 - `Space` or `↑`: Jump
-- `↓`: Enter pipe in Level 1 when standing near it
+- `↓`: Enter pipe in levels that have one
 - `R`: Restart after game over or after winning
