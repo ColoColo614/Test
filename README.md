@@ -16,7 +16,12 @@ Then open `http://localhost:8000`.
 - Survive **Level 2** and enter its pipe with `↓`.
 - Clear **Level 3** by reaching the flag.
 - Avoid enemies: touching one from the side causes a loss.
-- Defeat enemies by landing on top of them.
+- Defeat enemies by landing on top of them for a score bonus.
+
+## Scoring
+
+- Defeating an enemy by stomping gives extra points.
+- Beating the final level gives a large completion bonus.
 
 ## Controls
 

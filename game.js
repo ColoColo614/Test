@@ -14,8 +14,11 @@ const JUMP_FORCE = -14.2;
 const FLOOR_Y = 440;
 
 const SAFE_GAP_MIN = 58;
-const SAFE_GAP_MAX = 110;
+const SAFE_GAP_MAX = 220;
 const SAFE_PLATFORM_HEIGHT_MAX = 90;
+const SPAWN_SAFE_RUNWAY = 560;
+const STOMP_SCORE = 120;
+const WIN_BONUS = 1500;
 
 const LEVELS = [
   {
@@ -91,7 +94,8 @@ function createChunk(startX, width, kind = "ground", heightOffset = 0) {
 
 function generateSafeTerrain(level) {
   const chunks = [];
-  let x = -120;
+  chunks.push(createChunk(-160, SPAWN_SAFE_RUNWAY));
+  let x = -160 + SPAWN_SAFE_RUNWAY;
 
   while (x < level.levelLength + 420) {
     const width = 180 + Math.random() * 180;
@@ -265,7 +269,7 @@ function handleEnemyCollisions(previousY) {
     if (stomped) {
       enemy.alive = false;
       player.vy = -9.5;
-      world.score += 30;
+      world.score += STOMP_SCORE;
       continue;
     }
 
@@ -338,6 +342,7 @@ function update() {
   }
 
   if (level.hasFlag && world.offsetX >= level.levelLength) {
+    world.score += WIN_BONUS;
     world.won = true;
     world.best = Math.max(world.best, Math.floor(world.score));
   }
