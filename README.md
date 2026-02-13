@@ -1,6 +1,6 @@
-# Mini Plumber Run
+# Mini Plumber Run 1.4
 
-A basic side-scrolling browser game inspired by Mario-style platformers.
+A side-scrolling browser game inspired by Mario-style platformers.
 
 ## Run locally
 
@@ -12,26 +12,21 @@ Then open `http://localhost:8000`.
 
 ## How to play
 
-- Survive jumps across gaps and platforms in **Level 1** and enter the pipe with `↓`.
-- Survive **Level 2** and enter its pipe with `↓`.
-- Clear **Level 3** by reaching the flag.
+- Survive jumps across wider-spaced gaps and platforms in **Level 1**, then enter the pipe with `↓`.
+- Survive **Level 2** (with faster enemies) and enter its pipe with `↓`.
+- Clear **Level 3** (also with faster enemies) by reaching the flag that always spawns on land.
 - Avoid enemies: touching one from the side causes a loss.
-- Defeat enemies by landing on top of them for a score bonus.
+- Defeat enemies by landing on top of them.
 
 ## Scoring
 
-- Defeating an enemy by stomping gives extra points.
+- Defeating an enemy by stomping gives a bonus.
+- Entering a pipe gives a bonus.
 - Beating the final level gives a large completion bonus.
 
 ## Controls
 
-- `←` / `→`: Move (15% slower than before for more control)
+- `←` / `→`: Move
 - `Space` or `↑`: Jump
 - `↓`: Enter pipe in levels that have one
 - `R`: Restart after game over or after winning
-
-
-## Gameplay tuning
-
-- Platform heights are increased to create taller jumps throughout levels.
-- Player jump strength is boosted by 25% to support the higher platform routes.

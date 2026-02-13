@@ -9,15 +9,16 @@ const keys = {
 };
 
 const GRAVITY = 0.78;
-const MOVE_SPEED = 3.57; // 15% slower than 4.2
+const MOVE_SPEED = 3.57; // 15% slower than the original baseline
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
-const SAFE_GAP_MIN = 58;
-const SAFE_GAP_MAX = 220;
+const SAFE_GAP_MIN = 73;
+const SAFE_GAP_MAX = 275;
 const SAFE_PLATFORM_HEIGHT_MAX = 180;
 const SPAWN_SAFE_RUNWAY = 560;
 const STOMP_SCORE = 120;
+const PIPE_BONUS = 220;
 const WIN_BONUS = 1500;
 
 const LEVELS = [
@@ -25,7 +26,7 @@ const LEVELS = [
     id: 1,
     name: "Level 1",
     baseSpeed: 3.0,
-    levelLength: 2550,
+    levelLength: 2850,
     objective: "Reach the pipe and press ↓",
     hasPipe: true,
     hasFlag: false,
@@ -35,7 +36,7 @@ const LEVELS = [
     id: 2,
     name: "Level 2",
     baseSpeed: 3.45,
-    levelLength: 2900,
+    levelLength: 3250,
     objective: "Use the second pipe to descend",
     hasPipe: true,
     hasFlag: false,
@@ -45,8 +46,8 @@ const LEVELS = [
     id: 3,
     name: "Level 3",
     baseSpeed: 3.85,
-    levelLength: 3350,
-    objective: "Reach the flag to win",
+    levelLength: 3725,
+    objective: "Reach the flag on land to win",
     hasPipe: false,
     hasFlag: true,
     enemyCount: 7,
@@ -76,6 +77,7 @@ const world = {
   chunks: [],
   enemies: [],
   pipe: null,
+  flagX: null,
 };
 
 function currentLevel() {
@@ -97,19 +99,29 @@ function generateSafeTerrain(level) {
   chunks.push(createChunk(-160, SPAWN_SAFE_RUNWAY));
   let x = -160 + SPAWN_SAFE_RUNWAY;
 
-  while (x < level.levelLength + 420) {
-    const width = 180 + Math.random() * 180;
+  while (x < level.levelLength + 440) {
+    const width = 190 + Math.random() * 190;
     chunks.push(createChunk(x, width));
 
-    if (Math.random() < 0.44) {
-      const platformWidth = 90 + Math.random() * 105;
+    if (Math.random() < 0.45) {
+      const platformWidth = 90 + Math.random() * 110;
       const platformX = x + 20 + Math.random() * Math.max(25, width - platformWidth - 20);
       const platformHeight = 70 + Math.random() * (SAFE_PLATFORM_HEIGHT_MAX - 70);
-      chunks.push(createChunk(platformX, platformWidth, "platform", platformHeight));
+      const primary = createChunk(platformX, platformWidth, "platform", platformHeight);
+      chunks.push(primary);
+
+      if (Math.random() < 0.58) {
+        const secondaryWidth = Math.max(72, platformWidth * (0.55 + Math.random() * 0.22));
+        const maxShift = Math.max(8, platformWidth - secondaryWidth - 8);
+        const secondaryX = primary.x + 4 + Math.random() * maxShift;
+        const extraHeight = 46 + Math.random() * 52;
+        const secondaryHeight = Math.min(SAFE_PLATFORM_HEIGHT_MAX + 80, platformHeight + extraHeight);
+        chunks.push(createChunk(secondaryX, secondaryWidth, "platform", secondaryHeight));
+      }
     }
 
     x += width;
-    if (x < level.levelLength + 300) {
+    if (x < level.levelLength + 320) {
       x += SAFE_GAP_MIN + Math.random() * (SAFE_GAP_MAX - SAFE_GAP_MIN);
     }
   }
@@ -129,7 +141,7 @@ function placePipeOnLand(level, chunks) {
 
   if (!ground) {
     const fallback = chunks
-      .filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength - 700)
+      .filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength - 850)
       .sort((a, b) => b.width - a.width)[0];
 
     if (!fallback) return null;
@@ -144,6 +156,25 @@ function placePipeOnLand(level, chunks) {
   };
 }
 
+function placeFlagOnLand(level, chunks) {
+  if (!level.hasFlag) return null;
+
+  let candidateX = level.levelLength - 90;
+  let ground = findGroundChunkAt(chunks, candidateX);
+
+  if (!ground) {
+    const fallback = chunks
+      .filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength - 850)
+      .sort((a, b) => b.width - a.width)[0];
+
+    if (!fallback) return level.levelLength;
+    ground = fallback;
+    candidateX = fallback.x + fallback.width - 46;
+  }
+
+  return Math.max(ground.x + 24, Math.min(candidateX, ground.x + ground.width - 16));
+}
+
 function buildEnemies(level, chunks) {
   const enemies = [];
   const candidates = chunks
@@ -151,6 +182,7 @@ function buildEnemies(level, chunks) {
     .sort((a, b) => a.x - b.x);
 
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
+  const speedMultiplier = level.id >= 2 ? 1.15 : 1;
 
   for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
     const chunk = candidates[i];
@@ -160,7 +192,7 @@ function buildEnemies(level, chunks) {
       y: chunk.y - 30,
       w: 32,
       h: 30,
-      vx: Math.random() < 0.5 ? -1.25 : 1.25,
+      vx: (Math.random() < 0.5 ? -1.25 : 1.25) * speedMultiplier,
       minX: chunk.x + margin,
       maxX: chunk.x + chunk.width - margin - 32,
       alive: true,
@@ -174,6 +206,7 @@ function buildLevel(level) {
   world.offsetX = 0;
   world.chunks = generateSafeTerrain(level);
   world.pipe = placePipeOnLand(level, world.chunks);
+  world.flagX = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
 
   player.x = 180;
@@ -335,16 +368,46 @@ function update() {
   }
 
   if (level.hasPipe && isAtPipe() && keys.down) {
+    world.score += PIPE_BONUS;
     world.transitioning = true;
     world.transitionTimer = 72;
     world.nextLevelIndex = Math.min(LEVELS.length - 1, world.currentLevelIndex + 1);
     return;
   }
 
-  if (level.hasFlag && world.offsetX >= level.levelLength) {
+  if (level.hasFlag && world.flagX !== null && world.offsetX >= world.flagX - 60) {
     world.score += WIN_BONUS;
     world.won = true;
     world.best = Math.max(world.best, Math.floor(world.score));
+  }
+}
+
+function drawBackground() {
+  ctx.fillStyle = "#ffd66b";
+  ctx.beginPath();
+  ctx.arc(140, 96, 44, 0, Math.PI * 2);
+  ctx.fill();
+
+  const cloudDrift = (world.offsetX * 0.18) % 1200;
+  const clouds = [
+    { x: 220 - cloudDrift, y: 96, s: 1.05 },
+    { x: 520 - cloudDrift * 0.92, y: 72, s: 1.2 },
+    { x: 860 - cloudDrift * 1.08, y: 118, s: 0.95 },
+    { x: 1120 - cloudDrift, y: 84, s: 1.1 },
+  ];
+
+  for (const cloud of clouds) {
+    const baseX = ((cloud.x % 1200) + 1200) % 1200 - 120;
+    const y = cloud.y;
+    const r = 22 * cloud.s;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.beginPath();
+    ctx.arc(baseX, y, r, 0, Math.PI * 2);
+    ctx.arc(baseX + r * 0.9, y - 10, r * 0.85, 0, Math.PI * 2);
+    ctx.arc(baseX + r * 1.9, y - 2, r * 1.05, 0, Math.PI * 2);
+    ctx.arc(baseX + r * 3, y, r * 0.88, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -379,9 +442,9 @@ function drawPipe() {
 
 function drawFlag() {
   const level = currentLevel();
-  if (!level.hasFlag) return;
+  if (!level.hasFlag || world.flagX === null) return;
 
-  const x = level.levelLength - world.offsetX;
+  const x = world.flagX - world.offsetX;
   const poleY = FLOOR_Y - 150;
   ctx.fillStyle = "#d9d9d9";
   ctx.fillRect(x, poleY, 6, 150);
@@ -430,7 +493,7 @@ function drawHUD() {
   const level = currentLevel();
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(14, 14, 370, 94);
+  ctx.fillRect(14, 14, 420, 94);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px Segoe UI";
@@ -441,11 +504,11 @@ function drawHUD() {
 
   if (level.hasPipe && isAtPipe() && !world.transitioning) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(canvas.width / 2 - 170, 122, 340, 40);
+    ctx.fillRect(canvas.width / 2 - 190, 122, 380, 40);
     ctx.fillStyle = "#e3ffe3";
     ctx.font = "bold 20px Segoe UI";
     ctx.textAlign = "center";
-    ctx.fillText("Press ↓ to go down the pipe", canvas.width / 2, 150);
+    ctx.fillText(`Press ↓ to go down the pipe (+${PIPE_BONUS})`, canvas.width / 2, 150);
     ctx.textAlign = "start";
   }
 
@@ -468,7 +531,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat All 3 Levels!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.4!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";
@@ -477,6 +540,7 @@ function drawHUD() {
 
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
 
   for (const chunk of getVisibleChunks()) {
     drawChunk(chunk);
