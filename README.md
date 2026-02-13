@@ -36,3 +36,10 @@ Then open `http://localhost:8000`.
 
 - Moving left (backward) is 50% faster than standard move speed.
 - Side-scrolling speed is increased by 10%.
+
+
+## Latest tuning
+
+- Gaps are spaced 20% farther apart on average.
+- Secondary platforms now appear in front of primary platforms.
+- Level 3 enemies now move 20% faster than baseline.

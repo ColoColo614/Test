@@ -15,8 +15,8 @@ const SCROLL_SPEED_MULTIPLIER = 1.1;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
-const SAFE_GAP_MIN = 73;
-const SAFE_GAP_MAX = 275;
+const SAFE_GAP_MIN = 88;
+const SAFE_GAP_MAX = 330;
 const SAFE_PLATFORM_HEIGHT_MAX = 180;
 const SPAWN_SAFE_RUNWAY = 560;
 const STOMP_SCORE = 120;
@@ -114,8 +114,7 @@ function generateSafeTerrain(level) {
 
       if (Math.random() < 0.58) {
         const secondaryWidth = Math.max(72, platformWidth * (0.55 + Math.random() * 0.22));
-        const maxShift = Math.max(8, platformWidth - secondaryWidth - 8);
-        const secondaryX = primary.x + 4 + Math.random() * maxShift;
+        const secondaryX = primary.x + primary.width + 12 + Math.random() * 52;
         const extraHeight = 46 + Math.random() * 52;
         const secondaryHeight = Math.min(SAFE_PLATFORM_HEIGHT_MAX + 80, platformHeight + extraHeight);
         chunks.push(createChunk(secondaryX, secondaryWidth, "platform", secondaryHeight));
@@ -184,7 +183,7 @@ function buildEnemies(level, chunks) {
     .sort((a, b) => a.x - b.x);
 
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
-  const speedMultiplier = level.id >= 2 ? 1.15 : 1;
+  const speedMultiplier = level.id === 3 ? 1.2 : level.id === 2 ? 1.15 : 1;
 
   for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
     const chunk = candidates[i];
