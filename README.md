@@ -30,3 +30,9 @@ Then open `http://localhost:8000`.
 - `Space` or `↑`: Jump
 - `↓`: Enter pipe in levels that have one
 - `R`: Restart after game over or after winning
+
+
+## Movement tuning
+
+- Moving left (backward) is 50% faster than standard move speed.
+- Side-scrolling speed is increased by 10%.

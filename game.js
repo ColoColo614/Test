@@ -10,6 +10,8 @@ const keys = {
 
 const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
+const BACKWARD_SPEED_MULTIPLIER = 1.5;
+const SCROLL_SPEED_MULTIPLIER = 1.1;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
@@ -338,13 +340,13 @@ function update() {
   const previousY = player.y;
 
   player.vx = 0;
-  if (keys.left) player.vx -= MOVE_SPEED;
+  if (keys.left) player.vx -= MOVE_SPEED * BACKWARD_SPEED_MULTIPLIER;
   if (keys.right) player.vx += MOVE_SPEED;
 
   player.x += player.vx;
   player.x = Math.max(80, Math.min(canvas.width - player.w - 90, player.x));
 
-  world.offsetX += level.baseSpeed + Math.max(0, player.vx * 0.55);
+  world.offsetX += (level.baseSpeed + Math.max(0, player.vx * 0.55)) * SCROLL_SPEED_MULTIPLIER;
   world.score += level.baseSpeed * 0.13 + Math.max(0, player.vx * 0.05);
 
   if (keys.jump && player.onGround) {
