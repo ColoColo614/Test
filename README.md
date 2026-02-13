@@ -29,3 +29,9 @@ Then open `http://localhost:8000`.
 - `Space` or `↑`: Jump
 - `↓`: Enter pipe in levels that have one
 - `R`: Restart after game over or after winning
+
+
+## Gameplay tuning
+
+- Platform heights are increased to create taller jumps throughout levels.
+- Player jump strength is boosted by 25% to support the higher platform routes.

@@ -10,12 +10,12 @@ const keys = {
 
 const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than 4.2
-const JUMP_FORCE = -14.2;
+const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
 const SAFE_GAP_MIN = 58;
 const SAFE_GAP_MAX = 220;
-const SAFE_PLATFORM_HEIGHT_MAX = 90;
+const SAFE_PLATFORM_HEIGHT_MAX = 180;
 const SPAWN_SAFE_RUNWAY = 560;
 const STOMP_SCORE = 120;
 const WIN_BONUS = 1500;
@@ -104,7 +104,7 @@ function generateSafeTerrain(level) {
     if (Math.random() < 0.44) {
       const platformWidth = 90 + Math.random() * 105;
       const platformX = x + 20 + Math.random() * Math.max(25, width - platformWidth - 20);
-      const platformHeight = 35 + Math.random() * (SAFE_PLATFORM_HEIGHT_MAX - 35);
+      const platformHeight = 70 + Math.random() * (SAFE_PLATFORM_HEIGHT_MAX - 70);
       chunks.push(createChunk(platformX, platformWidth, "platform", platformHeight));
     }
 
