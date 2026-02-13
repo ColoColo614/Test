@@ -1,4 +1,4 @@
-# Mini Plumber Run 1.6
+# Mini Plumber Run 1.7
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -29,14 +29,14 @@ Then open `http://localhost:8000`.
 
 - `←` / `→`: Move
 - `Space` or `↑`: Jump
-- `↓`: Enter pipe in levels that have one
-- `R`: Restart after game over or after winning
+- `↓`: Enter pipe in levels that have one, or drop through a platform when standing on one
+- `R`: Pause/resume during a level, or restart after game over/winning
 
 
 ## Movement tuning
 
-- Moving left (backward) is 50% faster than standard move speed.
-- Side-scrolling speed is increased by 10%.
+- Moving left (backward) is 30% faster than standard move speed.
+- Side-scrolling speed is increased by 20%.
 
 
 ## Latest tuning

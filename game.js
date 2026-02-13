@@ -10,8 +10,8 @@ const keys = {
 
 const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
-const BACKWARD_SPEED_MULTIPLIER = 1.5;
-const SCROLL_SPEED_MULTIPLIER = 1.1;
+const BACKWARD_SPEED_MULTIPLIER = 1.3;
+const SCROLL_SPEED_MULTIPLIER = 1.2;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
@@ -90,6 +90,9 @@ const world = {
   enemies: [],
   pipe: null,
   flag: null,
+  paused: false,
+  dropThroughTimer: 0,
+  standingOnPlatform: false,
 };
 
 function currentLevel() {
@@ -244,6 +247,9 @@ function restartGame() {
   world.won = false;
   world.transitioning = false;
   world.transitionTimer = 0;
+  world.paused = false;
+  world.dropThroughTimer = 0;
+  world.standingOnPlatform = false;
   world.nextLevelIndex = 0;
   world.currentLevelIndex = 0;
   buildLevel(currentLevel());
@@ -261,20 +267,66 @@ function overlapsHorizontally(rect, chunk) {
   return worldPlayerRight > chunk.x && worldPlayerLeft < chunk.x + chunk.width;
 }
 
-function resolveCollisions(previousY) {
+function resolveCollisions(previousX, previousY) {
   player.onGround = false;
+  world.standingOnPlatform = false;
+
+  const previousWorldLeft = previousX + world.offsetX;
+  const previousWorldTop = previousY;
 
   for (const chunk of getVisibleChunks()) {
-    if (!overlapsHorizontally(player, chunk)) continue;
+    const currentWorldLeft = player.x + world.offsetX;
+    const currentWorldTop = player.y;
+    const currentWorldRight = currentWorldLeft + player.w;
+    const currentWorldBottom = currentWorldTop + player.h;
 
-    const top = chunk.y;
-    const prevBottom = previousY + player.h;
-    const currentBottom = player.y + player.h;
+    const chunkLeft = chunk.x;
+    const chunkRight = chunk.x + chunk.width;
+    const chunkTop = chunk.y;
+    const chunkBottom = chunk.y + chunk.height;
 
-    if (prevBottom <= top && currentBottom >= top && player.vy >= 0) {
-      player.y = top - player.h;
+    const overlaps =
+      currentWorldRight > chunkLeft &&
+      currentWorldLeft < chunkRight &&
+      currentWorldBottom > chunkTop &&
+      currentWorldTop < chunkBottom;
+
+    if (!overlaps) continue;
+
+    const previousWorldRight = previousWorldLeft + player.w;
+    const previousWorldBottom = previousWorldTop + player.h;
+
+    const droppingThroughPlatform = chunk.kind === "platform" && world.dropThroughTimer > 0;
+
+    if (!droppingThroughPlatform && previousWorldBottom <= chunkTop && currentWorldBottom >= chunkTop && player.vy >= 0) {
+      player.y = chunkTop - player.h;
       player.vy = 0;
       player.onGround = true;
+      if (chunk.kind === "platform") {
+        world.standingOnPlatform = true;
+      }
+      continue;
+    }
+
+    if (droppingThroughPlatform) continue;
+
+    if (previousWorldTop >= chunkBottom && currentWorldTop < chunkBottom && player.vy < 0) {
+      player.y = chunkBottom;
+      player.vy = 0;
+      continue;
+    }
+
+    if (previousWorldRight <= chunkLeft && currentWorldRight > chunkLeft) {
+      const worldX = chunkLeft - player.w;
+      player.x = worldX - world.offsetX;
+      player.vx = Math.min(0, player.vx);
+      continue;
+    }
+
+    if (previousWorldLeft >= chunkRight && currentWorldLeft < chunkRight) {
+      const worldX = chunkRight;
+      player.x = worldX - world.offsetX;
+      player.vx = Math.max(0, player.vx);
     }
   }
 }
@@ -344,7 +396,7 @@ function isAtPipe() {
 }
 
 function update() {
-  if (world.gameOver || world.won) return;
+  if (world.gameOver || world.won || world.paused) return;
 
   if (world.transitioning) {
     world.transitionTimer -= 1;
@@ -357,6 +409,7 @@ function update() {
   }
 
   const level = currentLevel();
+  const previousX = player.x;
   const previousY = player.y;
 
   player.vx = 0;
@@ -374,10 +427,20 @@ function update() {
     player.onGround = false;
   }
 
+  if (world.dropThroughTimer > 0) {
+    world.dropThroughTimer -= 1;
+  }
+
+  if (keys.down && player.onGround && world.standingOnPlatform) {
+    world.dropThroughTimer = 12;
+    player.onGround = false;
+    player.y += 4;
+  }
+
   player.vy += GRAVITY;
   player.y += player.vy;
 
-  resolveCollisions(previousY);
+  resolveCollisions(previousX, previousY);
   updateEnemies();
   handleEnemyCollisions(previousY);
 
@@ -546,6 +609,19 @@ function drawHUD() {
     ctx.textAlign = "start";
   }
 
+  if (world.paused) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#e7f1ff";
+    ctx.textAlign = "center";
+    ctx.font = "bold 50px Segoe UI";
+    ctx.fillText("Paused", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.font = "24px Segoe UI";
+    ctx.fillText("Press R to resume", canvas.width / 2, canvas.height / 2 + 24);
+    ctx.textAlign = "start";
+  }
+
   if (world.gameOver || world.won) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -553,7 +629,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat All 4 Levels!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.7!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";
@@ -589,6 +665,11 @@ window.addEventListener("keydown", (event) => {
 
   if (event.code === "KeyR" && (world.gameOver || world.won)) {
     restartGame();
+    return;
+  }
+
+  if (event.code === "KeyR") {
+    world.paused = !world.paused;
   }
 });
 
