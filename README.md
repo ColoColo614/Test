@@ -43,3 +43,5 @@ Then open `http://localhost:8000`.
 - Gaps are spaced 20% farther apart on average.
 - Secondary platforms now appear in front of primary platforms.
 - Level 3 enemies now move 20% faster than baseline.
+
+- Land chunks between gaps now generate at varied altitudes.

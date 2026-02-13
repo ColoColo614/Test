@@ -79,7 +79,7 @@ const world = {
   chunks: [],
   enemies: [],
   pipe: null,
-  flagX: null,
+  flag: null,
 };
 
 function currentLevel() {
@@ -87,36 +87,43 @@ function currentLevel() {
 }
 
 function createChunk(startX, width, kind = "ground", heightOffset = 0) {
+  const y = FLOOR_Y - heightOffset;
   return {
     x: startX,
-    y: FLOOR_Y - heightOffset,
+    y,
     width,
-    height: kind === "ground" ? canvas.height - FLOOR_Y : 20,
+    height: kind === "ground" ? canvas.height - y : 20,
     kind,
   };
 }
 
 function generateSafeTerrain(level) {
   const chunks = [];
-  chunks.push(createChunk(-160, SPAWN_SAFE_RUNWAY));
+  let currentGroundHeight = 0;
+  chunks.push(createChunk(-160, SPAWN_SAFE_RUNWAY, "ground", currentGroundHeight));
   let x = -160 + SPAWN_SAFE_RUNWAY;
 
   while (x < level.levelLength + 440) {
     const width = 190 + Math.random() * 190;
-    chunks.push(createChunk(x, width));
+
+    const heightShift = (Math.random() - 0.5) * 46;
+    currentGroundHeight = Math.max(0, Math.min(120, currentGroundHeight + heightShift));
+
+    const ground = createChunk(x, width, "ground", currentGroundHeight);
+    chunks.push(ground);
 
     if (Math.random() < 0.45) {
       const platformWidth = 90 + Math.random() * 110;
       const platformX = x + 20 + Math.random() * Math.max(25, width - platformWidth - 20);
       const platformHeight = 70 + Math.random() * (SAFE_PLATFORM_HEIGHT_MAX - 70);
-      const primary = createChunk(platformX, platformWidth, "platform", platformHeight);
+      const primary = createChunk(platformX, platformWidth, "platform", currentGroundHeight + platformHeight);
       chunks.push(primary);
 
       if (Math.random() < 0.58) {
         const secondaryWidth = Math.max(72, platformWidth * (0.55 + Math.random() * 0.22));
         const secondaryX = primary.x + primary.width + 12 + Math.random() * 52;
         const extraHeight = 46 + Math.random() * 52;
-        const secondaryHeight = Math.min(SAFE_PLATFORM_HEIGHT_MAX + 80, platformHeight + extraHeight);
+        const secondaryHeight = Math.min(280, currentGroundHeight + platformHeight + extraHeight);
         chunks.push(createChunk(secondaryX, secondaryWidth, "platform", secondaryHeight));
       }
     }
@@ -154,6 +161,7 @@ function placePipeOnLand(level, chunks) {
     x: Math.max(ground.x + 20, Math.min(candidateX, ground.x + ground.width - 84)),
     width: 64,
     height: 86,
+    groundY: ground.y,
   };
 }
 
@@ -168,12 +176,15 @@ function placeFlagOnLand(level, chunks) {
       .filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength - 850)
       .sort((a, b) => b.width - a.width)[0];
 
-    if (!fallback) return level.levelLength;
+    if (!fallback) return { x: level.levelLength, groundY: FLOOR_Y };
     ground = fallback;
     candidateX = fallback.x + fallback.width - 46;
   }
 
-  return Math.max(ground.x + 24, Math.min(candidateX, ground.x + ground.width - 16));
+  return {
+    x: Math.max(ground.x + 24, Math.min(candidateX, ground.x + ground.width - 16)),
+    groundY: ground.y,
+  };
 }
 
 function buildEnemies(level, chunks) {
@@ -207,11 +218,11 @@ function buildLevel(level) {
   world.offsetX = 0;
   world.chunks = generateSafeTerrain(level);
   world.pipe = placePipeOnLand(level, world.chunks);
-  world.flagX = placeFlagOnLand(level, world.chunks);
+  world.flag = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
 
   player.x = 180;
-  player.y = FLOOR_Y - player.h;
+  player.y = world.chunks[0].y - player.h;
   player.vx = 0;
   player.vy = 0;
   player.onGround = false;
@@ -376,7 +387,7 @@ function update() {
     return;
   }
 
-  if (level.hasFlag && world.flagX !== null && world.offsetX >= world.flagX - 60) {
+  if (level.hasFlag && world.flag && world.offsetX >= world.flag.x - 60) {
     world.score += WIN_BONUS;
     world.won = true;
     world.best = Math.max(world.best, Math.floor(world.score));
@@ -433,7 +444,7 @@ function drawPipe() {
   if (!world.pipe) return;
 
   const x = world.pipe.x - world.offsetX;
-  const y = FLOOR_Y - world.pipe.height;
+  const y = world.pipe.groundY - world.pipe.height;
 
   ctx.fillStyle = "#1f9a38";
   ctx.fillRect(x, y + 10, world.pipe.width, world.pipe.height - 10);
@@ -443,10 +454,10 @@ function drawPipe() {
 
 function drawFlag() {
   const level = currentLevel();
-  if (!level.hasFlag || world.flagX === null) return;
+  if (!level.hasFlag || !world.flag) return;
 
-  const x = world.flagX - world.offsetX;
-  const poleY = FLOOR_Y - 150;
+  const x = world.flag.x - world.offsetX;
+  const poleY = world.flag.groundY - 150;
   ctx.fillStyle = "#d9d9d9";
   ctx.fillRect(x, poleY, 6, 150);
   ctx.fillStyle = "#f5d742";
