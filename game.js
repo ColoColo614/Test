@@ -49,10 +49,20 @@ const LEVELS = [
     name: "Level 3",
     baseSpeed: 3.85,
     levelLength: 3725,
-    objective: "Reach the flag on land to win",
+    objective: "Reach the third pipe",
+    hasPipe: true,
+    hasFlag: false,
+    enemyCount: 7,
+  },
+  {
+    id: 4,
+    name: "Level 4",
+    baseSpeed: 4.15,
+    levelLength: 4200,
+    objective: "Reach the final flag on land",
     hasPipe: false,
     hasFlag: true,
-    enemyCount: 7,
+    enemyCount: 8,
   },
 ];
 
@@ -194,7 +204,7 @@ function buildEnemies(level, chunks) {
     .sort((a, b) => a.x - b.x);
 
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
-  const speedMultiplier = level.id === 3 ? 1.2 : level.id === 2 ? 1.15 : 1;
+  const speedMultiplier = level.id === 4 ? 1.32 : level.id === 3 ? 1.2 : level.id === 2 ? 1.15 : 1;
 
   for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
     const chunk = candidates[i];
@@ -543,7 +553,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.4!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat All 4 Levels!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";

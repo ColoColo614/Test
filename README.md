@@ -14,7 +14,8 @@ Then open `http://localhost:8000`.
 
 - Survive jumps across wider-spaced gaps and platforms in **Level 1**, then enter the pipe with `↓`.
 - Survive **Level 2** (with faster enemies) and enter its pipe with `↓`.
-- Clear **Level 3** (also with faster enemies) by reaching the flag that always spawns on land.
+- Clear **Level 3** (also with faster enemies) and enter the third pipe.
+- Clear **Level 4** where enemies are the fastest, and reach the final flag that spawns on land.
 - Avoid enemies: touching one from the side causes a loss.
 - Defeat enemies by landing on top of them.
 
@@ -42,6 +43,7 @@ Then open `http://localhost:8000`.
 
 - Gaps are spaced 20% farther apart on average.
 - Secondary platforms now appear in front of primary platforms.
-- Level 3 enemies now move 20% faster than baseline.
+- Level 3 enemies move 20% faster than baseline.
+- Level 4 enemies move 10% faster than level 3 enemies.
 
 - Land chunks between gaps now generate at varied altitudes.
