@@ -637,8 +637,8 @@ function drawBackground() {
 
   const hillDrift = (world.offsetX * 0.35) % 1400;
   const hillBands = [
-    { y: 392, color: "#63b96d", size: 120, drift: 1 },
-    { y: 414, color: "#56a861", size: 150, drift: 0.75 },
+    { y: 404, color: "#83cf8b", size: 98, drift: 1 },
+    { y: 426, color: "#74c47d", size: 120, drift: 0.75 },
   ];
 
   for (const band of hillBands) {
@@ -646,7 +646,7 @@ function drawBackground() {
     for (let i = -2; i < 8; i += 1) {
       const hx = i * 220 - (hillDrift * band.drift) % 220;
       ctx.beginPath();
-      ctx.arc(hx + 110, band.y, band.size * 0.55, Math.PI, 0);
+      ctx.ellipse(hx + 110, band.y, band.size, band.size * 0.42, 0, Math.PI, 0);
       ctx.lineTo(hx + 220, canvas.height);
       ctx.lineTo(hx, canvas.height);
       ctx.closePath();
