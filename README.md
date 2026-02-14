@@ -1,4 +1,4 @@
-# Mini Plumber Run 1.92
+# Mini Plumber Run 1.93
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -12,15 +12,19 @@ Then open `http://localhost:8000`.
 
 ## How to play
 
-- At launch, choose your character:
+- At launch, choose your run mode first:
+  - `1`: Normal Run
+  - `2`: Speed Run (20% faster sideways scroll)
+- Then choose your character:
   - `1`: Classic
   - `2`: Green suit
-  - or click a character card on screen
+  - or click a card on screen
 
 - Survive jumps across wider-spaced gaps and platforms in **Level 1**, then enter the pipe with `↓`.
 - Survive **Level 2** (with faster enemies) and enter its pipe with `↓`.
 - Clear **Level 3** (also with faster enemies) and enter the third pipe.
-- Clear **Level 4** where enemies are the fastest, and reach the final flag that spawns on land.
+- Clear **Level 4** and enter the fourth pipe.
+- Clear **Level 5** where enemies are the fastest, and reach the final flag that spawns on land.
 - Avoid enemies: touching one from the side causes a loss.
 - Defeat enemies by landing on top of them.
 
@@ -36,20 +40,21 @@ Then open `http://localhost:8000`.
 - `Space` or `↑`: Jump
 - `↓`: Enter pipe in levels that have one, or drop through a platform when standing on one
 - `R`: Pause/resume during a level, or restart after game over/winning
-
+- `M`: Reopen mode + character selection after 10 total deaths
 
 ## Movement tuning
 
 - Moving left (backward) was doubled from its prior tuning (now much faster than standard move speed).
 - Side-scrolling speed is increased by 20%.
-
+- Speed Run mode adds another 20% sideways scroll speed boost.
 
 ## Latest tuning
 
 - Chunks are ~30% longer on average and there are about 20% fewer gaps on average.
 - Secondary platforms now appear in front of primary platforms, and platform spawn frequency is increased by 25%.
 - Level 3 enemies move 20% faster than baseline.
-- Level 4 enemies move 10% faster than level 3 enemies.
+- Level 4 enemies move 10% faster than Level 3 enemies.
+- Level 5 enemies move 10% faster than Level 4 enemies.
 
 - Land chunks between gaps now generate at varied altitudes.
 

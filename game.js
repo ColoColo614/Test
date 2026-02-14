@@ -11,7 +11,8 @@ const keys = {
 const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
 const BACKWARD_SPEED_MULTIPLIER = 2.6;
-const SCROLL_SPEED_MULTIPLIER = 1.2;
+const BASE_SCROLL_SPEED_MULTIPLIER = 1.2;
+const SPEED_RUN_SCROLL_MULTIPLIER = 1.2;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
@@ -59,10 +60,22 @@ const LEVELS = [
     name: "Level 4",
     baseSpeed: 4.15,
     levelLength: 4200,
+    objective: "Reach the fourth pipe",
+    hasPipe: true,
+    hasFlag: false,
+    enemyCount: 8,
+    enemySpeedMultiplier: 1.32,
+  },
+  {
+    id: 5,
+    name: "Level 5",
+    baseSpeed: 4.35,
+    levelLength: 4480,
     objective: "Reach the final flag on land",
     hasPipe: false,
     hasFlag: true,
-    enemyCount: 8,
+    enemyCount: 10,
+    enemySpeedMultiplier: 1.452,
   },
 ];
 
@@ -80,6 +93,17 @@ const CHARACTER_PALETTES = {
     skin: "#f4be97",
     suit: "#2fbe57",
     shoes: "#5b3a1f",
+  },
+};
+
+const RUN_MODES = {
+  normal: {
+    name: "Normal Run",
+    scrollMultiplier: 1,
+  },
+  speed: {
+    name: "Speed Run",
+    scrollMultiplier: SPEED_RUN_SCROLL_MULTIPLIER,
   },
 };
 
@@ -112,9 +136,13 @@ const world = {
   standingOnPlatform: false,
   star: null,
   collectedStars: 0,
-  awaitingCharacterSelect: true,
+  awaitingModeSelect: true,
+  awaitingCharacterSelect: false,
+  selectedMode: null,
   selectedCharacter: null,
   isNewHighScore: false,
+  deaths: 0,
+  menuUnlocked: false,
 };
 
 function currentLevel() {
@@ -127,6 +155,13 @@ function finalizeRun(gameWon) {
   world.best = Math.max(world.best, finalScore);
   world.won = gameWon;
   world.gameOver = !gameWon;
+
+  if (!gameWon) {
+    world.deaths += 1;
+    if (world.deaths >= 10) {
+      world.menuUnlocked = true;
+    }
+  }
 }
 
 function createChunk(startX, width, kind = "ground", heightOffset = 0) {
@@ -254,7 +289,7 @@ function buildEnemies(level, chunks) {
     .sort((a, b) => a.x - b.x);
 
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
-  const speedMultiplier = level.id === 4 ? 1.32 : level.id === 3 ? 1.2 : level.id === 2 ? 1.15 : 1;
+  const speedMultiplier = level.enemySpeedMultiplier || 1;
 
   for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
     const chunk = candidates[i];
@@ -274,14 +309,23 @@ function buildEnemies(level, chunks) {
   return enemies;
 }
 
-function startCharacterSelect() {
-  world.awaitingCharacterSelect = true;
+function startModeSelect() {
+  world.awaitingModeSelect = true;
+  world.awaitingCharacterSelect = false;
+  world.selectedMode = null;
   world.selectedCharacter = null;
   world.paused = false;
 }
 
+function chooseMode(modeKey) {
+  if (!RUN_MODES[modeKey]) return;
+  world.selectedMode = modeKey;
+  world.awaitingModeSelect = false;
+  world.awaitingCharacterSelect = true;
+}
+
 function chooseCharacter(characterKey) {
-  if (!CHARACTER_PALETTES[characterKey]) return;
+  if (!CHARACTER_PALETTES[characterKey] || !world.selectedMode) return;
   world.selectedCharacter = characterKey;
   world.awaitingCharacterSelect = false;
   restartGame();
@@ -472,7 +516,7 @@ function handleStarCollection() {
 
 
 function update() {
-  if (world.awaitingCharacterSelect || world.gameOver || world.won || world.paused) return;
+  if (world.awaitingModeSelect || world.awaitingCharacterSelect || world.gameOver || world.won || world.paused) return;
 
   if (world.transitioning) {
     world.transitionTimer -= 1;
@@ -495,7 +539,8 @@ function update() {
   player.x += player.vx;
   player.x = Math.max(80, Math.min(canvas.width - player.w - 90, player.x));
 
-  world.offsetX += (level.baseSpeed + Math.max(0, player.vx * 0.55)) * SCROLL_SPEED_MULTIPLIER;
+  const mode = RUN_MODES[world.selectedMode] || RUN_MODES.normal;
+  world.offsetX += (level.baseSpeed + Math.max(0, player.vx * 0.55)) * BASE_SCROLL_SPEED_MULTIPLIER * mode.scrollMultiplier;
   world.score += level.baseSpeed * 0.13 + Math.max(0, player.vx * 0.05);
 
   if (keys.jump && player.onGround) {
@@ -703,7 +748,7 @@ function drawHUD() {
   const level = currentLevel();
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(14, 14, 420, 94);
+  ctx.fillRect(14, 14, 520, 118);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px Segoe UI";
@@ -712,6 +757,8 @@ function drawHUD() {
   ctx.fillText(`Best: ${world.best}`, 24, 66);
   ctx.fillText(`${level.name}: ${level.objective}`, 24, 91);
   ctx.fillText(`Stars: ${world.collectedStars}`, 300, 66);
+  ctx.fillText(`Mode: ${(RUN_MODES[world.selectedMode] || RUN_MODES.normal).name}`, 24, 112);
+  ctx.fillText(`Deaths: ${world.deaths}`, 300, 91);
 
   if (level.hasPipe && isAtPipe() && !world.transitioning) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
@@ -755,12 +802,47 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.92!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.93!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     ctx.fillText(world.isNewHighScore ? "New High Score!" : "No new high score", canvas.width / 2, canvas.height / 2 + 6);
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
+    if (world.menuUnlocked) {
+      ctx.fillText("Press M to reopen mode + character select", canvas.width / 2, canvas.height / 2 + 74);
+    }
     ctx.textAlign = "start";
   }
+}
+
+function drawModeSelectScreen() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#f3f7ff";
+  ctx.textAlign = "center";
+  ctx.font = "bold 42px Segoe UI";
+  ctx.fillText("Choose Your Run Mode", canvas.width / 2, 120);
+  ctx.font = "22px Segoe UI";
+  ctx.fillText("Press 1 for Normal or 2 for Speed Run", canvas.width / 2, 160);
+
+  const cardY = 220;
+  const leftX = 220;
+  const rightX = 560;
+
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillRect(leftX, cardY, 180, 220);
+  ctx.fillRect(rightX, cardY, 180, 220);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 24px Segoe UI";
+  ctx.fillText("1 - Normal", leftX + 90, cardY + 92);
+  ctx.font = "18px Segoe UI";
+  ctx.fillText("Base side scroll", leftX + 90, cardY + 132);
+
+  ctx.font = "bold 24px Segoe UI";
+  ctx.fillText("2 - Speed Run", rightX + 90, cardY + 92);
+  ctx.font = "18px Segoe UI";
+  ctx.fillText("+20% side scroll", rightX + 90, cardY + 132);
+  ctx.textAlign = "start";
 }
 
 function drawCharacterSelectScreen() {
@@ -796,6 +878,11 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
 
+  if (world.awaitingModeSelect) {
+    drawModeSelectScreen();
+    return;
+  }
+
   if (world.awaitingCharacterSelect) {
     drawCharacterSelectScreen();
     return;
@@ -820,6 +907,12 @@ function loop() {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (world.awaitingModeSelect) {
+    if (event.code === "Digit1" || event.code === "Numpad1") chooseMode("normal");
+    if (event.code === "Digit2" || event.code === "Numpad2") chooseMode("speed");
+    return;
+  }
+
   if (world.awaitingCharacterSelect) {
     if (event.code === "Digit1" || event.code === "Numpad1") chooseCharacter("classic");
     if (event.code === "Digit2" || event.code === "Numpad2") chooseCharacter("green");
@@ -836,6 +929,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (event.code === "KeyM" && world.menuUnlocked) {
+    startModeSelect();
+    return;
+  }
+
   if (event.code === "KeyR") {
     world.paused = !world.paused;
   }
@@ -848,13 +946,11 @@ window.addEventListener("keyup", (event) => {
   if (event.code === "ArrowDown") keys.down = false;
 });
 
-startCharacterSelect();
+startModeSelect();
 loop();
 
 
 canvas.addEventListener("click", (event) => {
-  if (!world.awaitingCharacterSelect) return;
-
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
@@ -866,6 +962,14 @@ canvas.addEventListener("click", (event) => {
   const rightX = 560;
   const w = 180;
   const h = 220;
+
+  if (world.awaitingModeSelect) {
+    if (x >= leftX && x <= leftX + w && y >= cardY && y <= cardY + h) chooseMode("normal");
+    if (x >= rightX && x <= rightX + w && y >= cardY && y <= cardY + h) chooseMode("speed");
+    return;
+  }
+
+  if (!world.awaitingCharacterSelect) return;
 
   if (x >= leftX && x <= leftX + w && y >= cardY && y <= cardY + h) chooseCharacter("classic");
   if (x >= rightX && x <= rightX + w && y >= cardY && y <= cardY + h) chooseCharacter("green");
