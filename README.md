@@ -55,7 +55,7 @@ Then open `http://localhost:8000`.
 - Secondary platforms now appear in front of primary platforms, and platform spawn frequency is increased by 25%.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than Level 3 enemies.
-- Level 5 enemies move 10% faster than Level 4 enemies.
+- Level 5 enemies were increased by another 10% (now ~21% faster than Level 4 enemies).
 
 - Land chunks between gaps now generate at varied altitudes.
 

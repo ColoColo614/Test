@@ -76,7 +76,7 @@ const LEVELS = [
     hasPipe: false,
     hasFlag: true,
     enemyCount: 10,
-    enemySpeedMultiplier: 1.452,
+    enemySpeedMultiplier: 1.5972,
   },
 ];
 
