@@ -1,4 +1,4 @@
-# Mini Plumber Run 1.7
+# Mini Plumber Run 1.8
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -51,3 +51,5 @@ Then open `http://localhost:8000`.
 - Spikes now appear in small ground sections as hazards.
 - Each level has one hard-to-reach star that grants bonus points.
 - Background hills were added behind the terrain.
+
+- Secondary platforms are positioned above normal jump height from ground and are intended to be reached from other platforms.

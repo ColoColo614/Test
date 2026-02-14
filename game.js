@@ -138,8 +138,11 @@ function generateSafeTerrain(level) {
       if (Math.random() < 0.58) {
         const secondaryWidth = Math.max(72, platformWidth * (0.55 + Math.random() * 0.22));
         const secondaryX = primary.x + primary.width + 12 + Math.random() * 52;
-        const extraHeight = 46 + Math.random() * 52;
-        const secondaryHeight = Math.min(280, currentGroundHeight + platformHeight + extraHeight);
+        const primaryRelativeHeight = platformHeight;
+        const fromPrimaryLift = 42 + Math.random() * 36;
+        const minFromGround = 215;
+        const secondaryRelativeHeight = Math.max(minFromGround, primaryRelativeHeight + fromPrimaryLift);
+        const secondaryHeight = Math.min(300, currentGroundHeight + secondaryRelativeHeight);
         chunks.push(createChunk(secondaryX, secondaryWidth, "platform", secondaryHeight));
       }
     }
@@ -761,7 +764,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.7!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.8!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";
