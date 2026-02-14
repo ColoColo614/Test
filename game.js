@@ -10,7 +10,7 @@ const keys = {
 
 const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
-const BACKWARD_SPEED_MULTIPLIER = 1.3;
+const BACKWARD_SPEED_MULTIPLIER = 2.6;
 const SCROLL_SPEED_MULTIPLIER = 1.2;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
@@ -128,7 +128,7 @@ function generateSafeTerrain(level) {
     const ground = createChunk(x, width, "ground", currentGroundHeight);
     chunks.push(ground);
 
-    if (Math.random() < 0.45) {
+    if (Math.random() < 0.5625) {
       const platformWidth = 90 + Math.random() * 110;
       const platformX = x + 20 + Math.random() * Math.max(25, width - platformWidth - 20);
       const platformHeight = 70 + Math.random() * (SAFE_PLATFORM_HEIGHT_MAX - 70);
@@ -210,7 +210,7 @@ function buildSpikes(level, chunks, pipe) {
   const spikes = [];
   const candidates = chunks.filter((chunk) => chunk.kind === "ground" && chunk.width > 180 && chunk.x > 420 && chunk.x < level.levelLength - 260);
 
-  const spikeCount = 4 + Math.floor(level.id * 1.5);
+  const spikeCount = Math.max(2, Math.floor((4 + level.id * 1.5) * 0.85));
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, spikeCount)));
 
   for (let i = 0; i < candidates.length && spikes.length < spikeCount; i += step) {
@@ -245,7 +245,7 @@ function placeStar(level, chunks) {
     x: hardest.x + hardest.width * 0.5,
     y: hardest.y - 26,
     collected: false,
-    value: 450,
+    value: STOMP_SCORE + 20,
   };
 }
 
@@ -559,8 +559,8 @@ function drawBackground() {
 
   const hillDrift = (world.offsetX * 0.35) % 1400;
   const hillBands = [
-    { y: 372, color: "#5a9f63", size: 170, drift: 1 },
-    { y: 402, color: "#4f8d57", size: 210, drift: 0.75 },
+    { y: 392, color: "#63b96d", size: 120, drift: 1 },
+    { y: 414, color: "#56a861", size: 150, drift: 0.75 },
   ];
 
   for (const band of hillBands) {
@@ -776,7 +776,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.9!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.91!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";
