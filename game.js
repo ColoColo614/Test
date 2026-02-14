@@ -115,8 +115,6 @@ const world = {
   awaitingCharacterSelect: true,
   selectedCharacter: null,
   isNewHighScore: false,
-  shooters: [],
-  fireballs: [],
 };
 
 function currentLevel() {
@@ -235,31 +233,6 @@ function placeFlagOnLand(level, chunks) {
   };
 }
 
-function buildShooters(level, chunks) {
-  const shooters = [];
-  const candidates = chunks
-    .filter((chunk) => chunk.kind === "ground" && chunk.width > 200 && chunk.x > 500 && chunk.x < level.levelLength - 260)
-    .sort((a, b) => a.x - b.x);
-
-  const shooterCount = 2 + level.id;
-  const step = Math.max(1, Math.floor(candidates.length / Math.max(1, shooterCount)));
-
-  for (let i = 0; i < candidates.length && shooters.length < shooterCount; i += step) {
-    const chunk = candidates[i];
-    const margin = 28;
-    const x = chunk.x + margin + Math.random() * Math.max(20, chunk.width - margin * 2 - 26);
-    shooters.push({
-      x,
-      y: chunk.y - 34,
-      w: 26,
-      h: 34,
-      cooldown: 70 + Math.floor(Math.random() * 80),
-    });
-  }
-
-  return shooters;
-}
-
 function placeStar(level, chunks) {
   const platforms = chunks.filter((chunk) => chunk.kind === "platform" && chunk.y < FLOOR_Y - 120);
   const pool = platforms.length ? platforms : chunks.filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength * 0.65);
@@ -320,8 +293,6 @@ function buildLevel(level) {
   world.pipe = placePipeOnLand(level, world.chunks);
   world.flag = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
-  world.shooters = buildShooters(level, world.chunks);
-  world.fireballs = [];
   world.star = placeStar(level, world.chunks);
 
   player.x = 180;
@@ -342,7 +313,6 @@ function restartGame() {
   world.dropThroughTimer = 0;
   world.standingOnPlatform = false;
   world.collectedStars = 0;
-  world.fireballs = [];
   world.nextLevelIndex = 0;
   world.currentLevelIndex = 0;
   buildLevel(currentLevel());
@@ -501,61 +471,6 @@ function handleStarCollection() {
 }
 
 
-function updateShootersAndFireballs() {
-  const playerWorldX = world.offsetX + player.x + player.w * 0.5;
-
-  for (const shooter of world.shooters) {
-    shooter.cooldown -= 1;
-    if (shooter.cooldown > 0) continue;
-
-    const originX = shooter.x + shooter.w * 0.5;
-    const direction = playerWorldX >= originX ? 1 : -1;
-    world.fireballs.push({
-      x: originX,
-      y: shooter.y + 14,
-      r: 8,
-      vx: direction * (2.7 + Math.random() * 0.8),
-      vy: -0.15,
-      life: 260,
-    });
-
-    shooter.cooldown = 85 + Math.floor(Math.random() * 70);
-  }
-
-  world.fireballs = world.fireballs.filter((fireball) => {
-    fireball.x += fireball.vx;
-    fireball.y += fireball.vy;
-    fireball.vy += 0.003;
-    fireball.life -= 1;
-
-    if (fireball.life <= 0) return false;
-
-    for (const chunk of getVisibleChunks()) {
-      const insideX = fireball.x + fireball.r > chunk.x && fireball.x - fireball.r < chunk.x + chunk.width;
-      const insideY = fireball.y + fireball.r > chunk.y && fireball.y - fireball.r < chunk.y + chunk.height;
-      if (insideX && insideY) return false;
-    }
-
-    return fireball.x > world.offsetX - 120 && fireball.x < world.offsetX + canvas.width + 120;
-  });
-}
-
-function handleFireballCollisions() {
-  const px = world.offsetX + player.x;
-  const py = player.y;
-
-  for (const fireball of world.fireballs) {
-    const closestX = Math.max(px, Math.min(fireball.x, px + player.w));
-    const closestY = Math.max(py, Math.min(fireball.y, py + player.h));
-    const dx = fireball.x - closestX;
-    const dy = fireball.y - closestY;
-    if (dx * dx + dy * dy <= fireball.r * fireball.r) {
-      finalizeRun(false);
-      return;
-    }
-  }
-}
-
 function update() {
   if (world.awaitingCharacterSelect || world.gameOver || world.won || world.paused) return;
 
@@ -603,8 +518,6 @@ function update() {
 
   resolveCollisions(previousX, previousY);
   handleStarCollection();
-  updateShootersAndFireballs();
-  handleFireballCollisions();
   updateEnemies();
   handleEnemyCollisions(previousY);
 
@@ -716,30 +629,6 @@ function drawFlag() {
   ctx.fillRect(x, poleY, 6, 150);
   ctx.fillStyle = "#f5d742";
   ctx.fillRect(x + 6, poleY + 8, 42, 24);
-}
-
-function drawShooters() {
-  for (const shooter of world.shooters) {
-    const x = shooter.x - world.offsetX;
-    ctx.fillStyle = "#2d2d2d";
-    ctx.fillRect(x, shooter.y, shooter.w, shooter.h);
-    ctx.fillStyle = "#a8421f";
-    ctx.fillRect(x - 2, shooter.y + 10, shooter.w + 4, 8);
-  }
-}
-
-function drawFireballs() {
-  for (const fireball of world.fireballs) {
-    const x = fireball.x - world.offsetX;
-    ctx.fillStyle = "#ff9d2e";
-    ctx.beginPath();
-    ctx.arc(x, fireball.y, fireball.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffd87a";
-    ctx.beginPath();
-    ctx.arc(x - 2, fireball.y - 2, fireball.r * 0.45, 0, Math.PI * 2);
-    ctx.fill();
-  }
 }
 
 function drawStar() {
@@ -915,8 +804,6 @@ function render() {
 
   drawPipe();
   drawFlag();
-  drawShooters();
-  drawFireballs();
   drawStar();
   drawEnemies();
   drawPlayer();

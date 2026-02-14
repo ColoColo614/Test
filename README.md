@@ -50,7 +50,6 @@ Then open `http://localhost:8000`.
 - Secondary platforms now appear in front of primary platforms, and platform spawn frequency is increased by 25%.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than level 3 enemies.
-- Stationary antagonists now appear and shoot fireballs.
 
 - Land chunks between gaps now generate at varied altitudes.
 
