@@ -64,3 +64,5 @@ Then open `http://localhost:8000`.
 
 - Spike count was reduced by about 15%.
 - Hills were made smaller and greener in the background.
+
+- End-of-run screen now tells you whether you set a new high score.

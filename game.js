@@ -115,10 +115,19 @@ const world = {
   collectedStars: 0,
   awaitingCharacterSelect: true,
   selectedCharacter: null,
+  isNewHighScore: false,
 };
 
 function currentLevel() {
   return LEVELS[world.currentLevelIndex];
+}
+
+function finalizeRun(gameWon) {
+  const finalScore = Math.floor(world.score);
+  world.isNewHighScore = finalScore > world.best;
+  world.best = Math.max(world.best, finalScore);
+  world.won = gameWon;
+  world.gameOver = !gameWon;
 }
 
 function createChunk(startX, width, kind = "ground", heightOffset = 0) {
@@ -331,6 +340,7 @@ function restartGame() {
   world.transitioning = false;
   world.transitionTimer = 0;
   world.paused = false;
+  world.isNewHighScore = false;
   world.dropThroughTimer = 0;
   world.standingOnPlatform = false;
   world.collectedStars = 0;
@@ -466,8 +476,7 @@ function handleEnemyCollisions(previousY) {
       continue;
     }
 
-    world.gameOver = true;
-    world.best = Math.max(world.best, Math.floor(world.score));
+    finalizeRun(false);
     return;
   }
 }
@@ -489,8 +498,7 @@ function handleSpikeCollisions() {
     const overlapX = right > spike.x && left < spike.x + spike.width;
     const nearTop = bottom >= spike.y - 2 && bottom <= spike.y + spike.height + 4;
     if (overlapX && nearTop) {
-      world.gameOver = true;
-      world.best = Math.max(world.best, Math.floor(world.score));
+      finalizeRun(false);
       return;
     }
   }
@@ -563,8 +571,7 @@ function update() {
   if (world.gameOver) return;
 
   if (player.y > canvas.height + 120) {
-    world.gameOver = true;
-    world.best = Math.max(world.best, Math.floor(world.score));
+    finalizeRun(false);
     return;
   }
 
@@ -578,8 +585,7 @@ function update() {
 
   if (level.hasFlag && world.flag && world.offsetX >= world.flag.x - 60) {
     world.score += WIN_BONUS;
-    world.won = true;
-    world.best = Math.max(world.best, Math.floor(world.score));
+    finalizeRun(true);
   }
 }
 
@@ -814,9 +820,10 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.91!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.91!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
-    ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
+    ctx.fillText(world.isNewHighScore ? "New High Score!" : "No new high score", canvas.width / 2, canvas.height / 2 + 6);
+    ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
     ctx.textAlign = "start";
   }
 }
