@@ -1,4 +1,4 @@
-# Mini Plumber Run 1.8
+# Mini Plumber Run 1.9
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -41,7 +41,7 @@ Then open `http://localhost:8000`.
 
 ## Latest tuning
 
-- There are about 20% fewer gaps on average.
+- Chunks are ~30% longer on average and there are about 20% fewer gaps on average.
 - Secondary platforms now appear in front of primary platforms.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than level 3 enemies.
@@ -53,3 +53,5 @@ Then open `http://localhost:8000`.
 - Background hills were added behind the terrain.
 
 - Secondary platforms are positioned above normal jump height from ground and are intended to be reached from other platforms.
+
+- Spikes avoid chunk edges and pipe areas.

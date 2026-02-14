@@ -120,7 +120,7 @@ function generateSafeTerrain(level) {
   let x = -160 + SPAWN_SAFE_RUNWAY;
 
   while (x < level.levelLength + 440) {
-    const width = 190 + Math.random() * 190;
+    const width = 250 + Math.random() * 250;
 
     const heightShift = (Math.random() - 0.5) * 46;
     currentGroundHeight = Math.max(0, Math.min(120, currentGroundHeight + heightShift));
@@ -206,7 +206,7 @@ function placeFlagOnLand(level, chunks) {
   };
 }
 
-function buildSpikes(level, chunks) {
+function buildSpikes(level, chunks, pipe) {
   const spikes = [];
   const candidates = chunks.filter((chunk) => chunk.kind === "ground" && chunk.width > 180 && chunk.x > 420 && chunk.x < level.levelLength - 260);
 
@@ -215,8 +215,20 @@ function buildSpikes(level, chunks) {
 
   for (let i = 0; i < candidates.length && spikes.length < spikeCount; i += step) {
     const chunk = candidates[i];
+    const edgeMargin = 72;
     const width = 26 + Math.random() * 30;
-    const x = chunk.x + 20 + Math.random() * Math.max(12, chunk.width - width - 30);
+    const usable = chunk.width - edgeMargin * 2 - width;
+    if (usable <= 0) continue;
+
+    const x = chunk.x + edgeMargin + Math.random() * usable;
+    const overlapsPipe =
+      pipe &&
+      x + width > pipe.x - 6 &&
+      x < pipe.x + pipe.width + 6 &&
+      Math.abs(chunk.y - pipe.groundY) < 2;
+
+    if (overlapsPipe) continue;
+
     spikes.push({ x, y: chunk.y, width, height: 18 });
   }
 
@@ -270,7 +282,7 @@ function buildLevel(level) {
   world.pipe = placePipeOnLand(level, world.chunks);
   world.flag = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
-  world.spikes = buildSpikes(level, world.chunks);
+  world.spikes = buildSpikes(level, world.chunks, world.pipe);
   world.star = placeStar(level, world.chunks);
 
   player.x = 180;
@@ -764,7 +776,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.8!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.9!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 18);
     ctx.font = "24px Segoe UI";
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 28);
     ctx.textAlign = "start";
