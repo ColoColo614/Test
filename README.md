@@ -12,6 +12,11 @@ Then open `http://localhost:8000`.
 
 ## How to play
 
+- At launch, choose your character:
+  - `1`: Classic
+  - `2`: Green suit
+  - or click a character card on screen
+
 - Survive jumps across wider-spaced gaps and platforms in **Level 1**, then enter the pipe with `↓`.
 - Survive **Level 2** (with faster enemies) and enter its pipe with `↓`.
 - Clear **Level 3** (also with faster enemies) and enter the third pipe.

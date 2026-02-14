@@ -66,6 +66,23 @@ const LEVELS = [
   },
 ];
 
+const CHARACTER_PALETTES = {
+  classic: {
+    name: "Classic",
+    hat: "#d8342a",
+    skin: "#f4be97",
+    suit: "#223f9e",
+    shoes: "#73301f",
+  },
+  green: {
+    name: "Green Suit",
+    hat: "#1f8f3a",
+    skin: "#f4be97",
+    suit: "#2fbe57",
+    shoes: "#5b3a1f",
+  },
+};
+
 const player = {
   x: 180,
   y: FLOOR_Y - 56,
@@ -96,6 +113,8 @@ const world = {
   spikes: [],
   star: null,
   collectedStars: 0,
+  awaitingCharacterSelect: true,
+  selectedCharacter: null,
 };
 
 function currentLevel() {
@@ -274,6 +293,19 @@ function buildEnemies(level, chunks) {
   }
 
   return enemies;
+}
+
+function startCharacterSelect() {
+  world.awaitingCharacterSelect = true;
+  world.selectedCharacter = null;
+  world.paused = false;
+}
+
+function chooseCharacter(characterKey) {
+  if (!CHARACTER_PALETTES[characterKey]) return;
+  world.selectedCharacter = characterKey;
+  world.awaitingCharacterSelect = false;
+  restartGame();
 }
 
 function buildLevel(level) {
@@ -478,7 +510,7 @@ function handleStarCollection() {
 
 
 function update() {
-  if (world.gameOver || world.won || world.paused) return;
+  if (world.awaitingCharacterSelect || world.gameOver || world.won || world.paused) return;
 
   if (world.transitioning) {
     world.transitionTimer -= 1;
@@ -700,24 +732,30 @@ function drawEnemies() {
   }
 }
 
-function drawPlayer() {
+function drawCharacterSprite(x, y, palette, scale = 1) {
+  const s = scale;
   ctx.save();
-  ctx.translate(player.x, player.y);
+  ctx.translate(x, y);
 
-  ctx.fillStyle = "#d8342a";
-  ctx.fillRect(8, 0, 22, 14);
+  ctx.fillStyle = palette.hat;
+  ctx.fillRect(8 * s, 0, 22 * s, 14 * s);
 
-  ctx.fillStyle = "#f4be97";
-  ctx.fillRect(9, 14, 20, 16);
+  ctx.fillStyle = palette.skin;
+  ctx.fillRect(9 * s, 14 * s, 20 * s, 16 * s);
 
-  ctx.fillStyle = "#223f9e";
-  ctx.fillRect(6, 30, 26, 26);
+  ctx.fillStyle = palette.suit;
+  ctx.fillRect(6 * s, 30 * s, 26 * s, 26 * s);
 
-  ctx.fillStyle = "#73301f";
-  ctx.fillRect(5, 50, 10, 6);
-  ctx.fillRect(23, 50, 10, 6);
+  ctx.fillStyle = palette.shoes;
+  ctx.fillRect(5 * s, 50 * s, 10 * s, 6 * s);
+  ctx.fillRect(23 * s, 50 * s, 10 * s, 6 * s);
 
   ctx.restore();
+}
+
+function drawPlayer() {
+  const palette = CHARACTER_PALETTES[world.selectedCharacter] || CHARACTER_PALETTES.classic;
+  drawCharacterSprite(player.x, player.y, palette, 1);
 }
 
 function drawHUD() {
@@ -783,9 +821,43 @@ function drawHUD() {
   }
 }
 
+function drawCharacterSelectScreen() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#f3f7ff";
+  ctx.textAlign = "center";
+  ctx.font = "bold 42px Segoe UI";
+  ctx.fillText("Choose Your Character", canvas.width / 2, 120);
+  ctx.font = "22px Segoe UI";
+  ctx.fillText("Press 1 for Classic or 2 for Green Suit", canvas.width / 2, 160);
+
+  const cardY = 220;
+  const leftX = 220;
+  const rightX = 560;
+
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillRect(leftX, cardY, 180, 220);
+  ctx.fillRect(rightX, cardY, 180, 220);
+
+  drawCharacterSprite(leftX + 56, cardY + 56, CHARACTER_PALETTES.classic, 2.2);
+  drawCharacterSprite(rightX + 56, cardY + 56, CHARACTER_PALETTES.green, 2.2);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "20px Segoe UI";
+  ctx.fillText("1 - Classic", leftX + 90, cardY + 198);
+  ctx.fillText("2 - Green Suit", rightX + 90, cardY + 198);
+  ctx.textAlign = "start";
+}
+
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
+
+  if (world.awaitingCharacterSelect) {
+    drawCharacterSelectScreen();
+    return;
+  }
 
   for (const chunk of getVisibleChunks()) {
     drawChunk(chunk);
@@ -807,6 +879,12 @@ function loop() {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (world.awaitingCharacterSelect) {
+    if (event.code === "Digit1" || event.code === "Numpad1") chooseCharacter("classic");
+    if (event.code === "Digit2" || event.code === "Numpad2") chooseCharacter("green");
+    return;
+  }
+
   if (event.code === "ArrowLeft") keys.left = true;
   if (event.code === "ArrowRight") keys.right = true;
   if (event.code === "ArrowUp" || event.code === "Space") keys.jump = true;
@@ -829,5 +907,25 @@ window.addEventListener("keyup", (event) => {
   if (event.code === "ArrowDown") keys.down = false;
 });
 
-restartGame();
+startCharacterSelect();
 loop();
+
+
+canvas.addEventListener("click", (event) => {
+  if (!world.awaitingCharacterSelect) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+
+  const cardY = 220;
+  const leftX = 220;
+  const rightX = 560;
+  const w = 180;
+  const h = 220;
+
+  if (x >= leftX && x <= leftX + w && y >= cardY && y <= cardY + h) chooseCharacter("classic");
+  if (x >= rightX && x <= rightX + w && y >= cardY && y <= cardY + h) chooseCharacter("green");
+});
