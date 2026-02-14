@@ -13,6 +13,7 @@ const MOVE_SPEED = 3.57; // 15% slower than the original baseline
 const BACKWARD_SPEED_MULTIPLIER = 2.6;
 const BASE_SCROLL_SPEED_MULTIPLIER = 1.2;
 const SPEED_RUN_SCROLL_MULTIPLIER = 1.2;
+const SPEED_RUN_ENEMY_MULTIPLIER = 1.1;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
@@ -289,7 +290,8 @@ function buildEnemies(level, chunks) {
     .sort((a, b) => a.x - b.x);
 
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
-  const speedMultiplier = level.enemySpeedMultiplier || 1;
+  const speedModeEnemyBoost = world.selectedMode === "speed" && level.id <= 4 ? SPEED_RUN_ENEMY_MULTIPLIER : 1;
+  const speedMultiplier = (level.enemySpeedMultiplier || 1) * speedModeEnemyBoost;
 
   for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
     const chunk = candidates[i];

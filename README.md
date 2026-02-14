@@ -47,6 +47,7 @@ Then open `http://localhost:8000`.
 - Moving left (backward) was doubled from its prior tuning (now much faster than standard move speed).
 - Side-scrolling speed is increased by 20%.
 - Speed Run mode adds another 20% sideways scroll speed boost.
+- In Speed Run mode, enemies in Levels 1–4 are 10% faster.
 
 ## Latest tuning
 
