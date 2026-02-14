@@ -548,19 +548,22 @@ function drawBackground() {
   ctx.arc(140, 96, 44, 0, Math.PI * 2);
   ctx.fill();
 
-  const hillDrift = (world.offsetX * 0.35) % 1400;
+  const hillDrift = (world.offsetX * 0.35) % 1800;
   const hillBands = [
-    { y: 404, color: "#83cf8b", size: 98, drift: 1 },
-    { y: 426, color: "#74c47d", size: 120, drift: 0.75 },
+    { y: 360, color: "#8ed796", size: 90, drift: 1.15 },
+    { y: 386, color: "#84d18d", size: 105, drift: 0.98 },
+    { y: 412, color: "#79c982", size: 120, drift: 0.82 },
+    { y: 438, color: "#6fc178", size: 135, drift: 0.68 },
   ];
 
   for (const band of hillBands) {
     ctx.fillStyle = band.color;
-    for (let i = -2; i < 8; i += 1) {
-      const hx = i * 220 - (hillDrift * band.drift) % 220;
+    for (let i = -4; i < 12; i += 1) {
+      const spacing = 150;
+      const hx = i * spacing - (hillDrift * band.drift) % spacing;
       ctx.beginPath();
-      ctx.ellipse(hx + 110, band.y, band.size, band.size * 0.42, 0, Math.PI, 0);
-      ctx.lineTo(hx + 220, canvas.height);
+      ctx.ellipse(hx + spacing * 0.5, band.y, band.size, band.size * 0.44, 0, Math.PI, 0);
+      ctx.lineTo(hx + spacing, canvas.height);
       ctx.lineTo(hx, canvas.height);
       ctx.closePath();
       ctx.fill();
