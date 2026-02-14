@@ -41,9 +41,13 @@ Then open `http://localhost:8000`.
 
 ## Latest tuning
 
-- Gaps are spaced 20% farther apart on average.
+- There are about 20% fewer gaps on average.
 - Secondary platforms now appear in front of primary platforms.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than level 3 enemies.
 
 - Land chunks between gaps now generate at varied altitudes.
+
+- Spikes now appear in small ground sections as hazards.
+- Each level has one hard-to-reach star that grants bonus points.
+- Background hills were added behind the terrain.

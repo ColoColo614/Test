@@ -93,6 +93,9 @@ const world = {
   paused: false,
   dropThroughTimer: 0,
   standingOnPlatform: false,
+  spikes: [],
+  star: null,
+  collectedStars: 0,
 };
 
 function currentLevel() {
@@ -142,7 +145,7 @@ function generateSafeTerrain(level) {
     }
 
     x += width;
-    if (x < level.levelLength + 320) {
+    if (x < level.levelLength + 320 && Math.random() < 0.8) {
       x += SAFE_GAP_MIN + Math.random() * (SAFE_GAP_MAX - SAFE_GAP_MIN);
     }
   }
@@ -200,6 +203,37 @@ function placeFlagOnLand(level, chunks) {
   };
 }
 
+function buildSpikes(level, chunks) {
+  const spikes = [];
+  const candidates = chunks.filter((chunk) => chunk.kind === "ground" && chunk.width > 180 && chunk.x > 420 && chunk.x < level.levelLength - 260);
+
+  const spikeCount = 4 + Math.floor(level.id * 1.5);
+  const step = Math.max(1, Math.floor(candidates.length / Math.max(1, spikeCount)));
+
+  for (let i = 0; i < candidates.length && spikes.length < spikeCount; i += step) {
+    const chunk = candidates[i];
+    const width = 26 + Math.random() * 30;
+    const x = chunk.x + 20 + Math.random() * Math.max(12, chunk.width - width - 30);
+    spikes.push({ x, y: chunk.y, width, height: 18 });
+  }
+
+  return spikes;
+}
+
+function placeStar(level, chunks) {
+  const platforms = chunks.filter((chunk) => chunk.kind === "platform" && chunk.y < FLOOR_Y - 120);
+  const pool = platforms.length ? platforms : chunks.filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength * 0.65);
+  if (!pool.length) return null;
+
+  const hardest = pool.sort((a, b) => a.y - b.y)[0];
+  return {
+    x: hardest.x + hardest.width * 0.5,
+    y: hardest.y - 26,
+    collected: false,
+    value: 450,
+  };
+}
+
 function buildEnemies(level, chunks) {
   const enemies = [];
   const candidates = chunks
@@ -233,6 +267,8 @@ function buildLevel(level) {
   world.pipe = placePipeOnLand(level, world.chunks);
   world.flag = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
+  world.spikes = buildSpikes(level, world.chunks);
+  world.star = placeStar(level, world.chunks);
 
   player.x = 180;
   player.y = world.chunks[0].y - player.h;
@@ -250,6 +286,7 @@ function restartGame() {
   world.paused = false;
   world.dropThroughTimer = 0;
   world.standingOnPlatform = false;
+  world.collectedStars = 0;
   world.nextLevelIndex = 0;
   world.currentLevelIndex = 0;
   buildLevel(currentLevel());
@@ -308,7 +345,9 @@ function resolveCollisions(previousX, previousY) {
       continue;
     }
 
-    if (droppingThroughPlatform) continue;
+    if (chunk.kind === "platform") {
+      continue;
+    }
 
     if (previousWorldTop >= chunkBottom && currentWorldTop < chunkBottom && player.vy < 0) {
       player.y = chunkBottom;
@@ -394,6 +433,34 @@ function isAtPipe() {
   const pipeRight = pipeLeft + world.pipe.width;
   return player.onGround && worldPlayerCenter > pipeLeft - 20 && worldPlayerCenter < pipeRight + 20;
 }
+function handleSpikeCollisions() {
+  const left = world.offsetX + player.x + 4;
+  const right = world.offsetX + player.x + player.w - 4;
+  const bottom = player.y + player.h;
+
+  for (const spike of world.spikes) {
+    const overlapX = right > spike.x && left < spike.x + spike.width;
+    const nearTop = bottom >= spike.y - 2 && bottom <= spike.y + spike.height + 4;
+    if (overlapX && nearTop) {
+      world.gameOver = true;
+      world.best = Math.max(world.best, Math.floor(world.score));
+      return;
+    }
+  }
+}
+
+function handleStarCollection() {
+  if (!world.star || world.star.collected) return;
+
+  const px = world.offsetX + player.x + player.w / 2;
+  const py = player.y + player.h / 2;
+  if (Math.abs(px - world.star.x) < 26 && Math.abs(py - world.star.y) < 30) {
+    world.star.collected = true;
+    world.collectedStars += 1;
+    world.score += world.star.value;
+  }
+}
+
 
 function update() {
   if (world.gameOver || world.won || world.paused) return;
@@ -441,6 +508,8 @@ function update() {
   player.y += player.vy;
 
   resolveCollisions(previousX, previousY);
+  handleStarCollection();
+  handleSpikeCollisions();
   updateEnemies();
   handleEnemyCollisions(previousY);
 
@@ -472,6 +541,25 @@ function drawBackground() {
   ctx.beginPath();
   ctx.arc(140, 96, 44, 0, Math.PI * 2);
   ctx.fill();
+
+  const hillDrift = (world.offsetX * 0.35) % 1400;
+  const hillBands = [
+    { y: 372, color: "#5a9f63", size: 170, drift: 1 },
+    { y: 402, color: "#4f8d57", size: 210, drift: 0.75 },
+  ];
+
+  for (const band of hillBands) {
+    ctx.fillStyle = band.color;
+    for (let i = -2; i < 8; i += 1) {
+      const hx = i * 220 - (hillDrift * band.drift) % 220;
+      ctx.beginPath();
+      ctx.arc(hx + 110, band.y, band.size * 0.55, Math.PI, 0);
+      ctx.lineTo(hx + 220, canvas.height);
+      ctx.lineTo(hx, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
 
   const cloudDrift = (world.offsetX * 0.18) % 1200;
   const clouds = [
@@ -537,6 +625,49 @@ function drawFlag() {
   ctx.fillRect(x + 6, poleY + 8, 42, 24);
 }
 
+function drawSpikes() {
+  for (const spike of world.spikes) {
+    const x = spike.x - world.offsetX;
+    const y = spike.y;
+    const w = spike.width;
+    const h = spike.height;
+
+    ctx.fillStyle = "#dadada";
+    const teeth = Math.max(2, Math.floor(w / 10));
+    const step = w / teeth;
+    for (let i = 0; i < teeth; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * step, y);
+      ctx.lineTo(x + i * step + step * 0.5, y - h);
+      ctx.lineTo(x + (i + 1) * step, y);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function drawStar() {
+  if (!world.star || world.star.collected) return;
+  const cx = world.star.x - world.offsetX;
+  const cy = world.star.y;
+
+  ctx.fillStyle = "#ffd84d";
+  ctx.beginPath();
+  for (let i = 0; i < 5; i += 1) {
+    const outerAngle = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+    const innerAngle = outerAngle + Math.PI / 5;
+    const ox = cx + Math.cos(outerAngle) * 11;
+    const oy = cy + Math.sin(outerAngle) * 11;
+    const ix = cx + Math.cos(innerAngle) * 5;
+    const iy = cy + Math.sin(innerAngle) * 5;
+    if (i === 0) ctx.moveTo(ox, oy);
+    else ctx.lineTo(ox, oy);
+    ctx.lineTo(ix, iy);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawEnemies() {
   for (const enemy of world.enemies) {
     if (!enemy.alive) continue;
@@ -586,6 +717,7 @@ function drawHUD() {
   ctx.font = "18px Segoe UI";
   ctx.fillText(`Best: ${world.best}`, 24, 66);
   ctx.fillText(`${level.name}: ${level.objective}`, 24, 91);
+  ctx.fillText(`Stars: ${world.collectedStars}`, 300, 66);
 
   if (level.hasPipe && isAtPipe() && !world.transitioning) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
@@ -646,6 +778,8 @@ function render() {
 
   drawPipe();
   drawFlag();
+  drawSpikes();
+  drawStar();
   drawEnemies();
   drawPlayer();
   drawHUD();
