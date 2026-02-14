@@ -863,7 +863,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.91!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.92!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     ctx.fillText(world.isNewHighScore ? "New High Score!" : "No new high score", canvas.width / 2, canvas.height / 2 + 6);
     ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
