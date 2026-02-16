@@ -47,7 +47,7 @@ Then open `http://localhost:8000`.
 
 - Moving left (backward) was doubled from its prior tuning (now much faster than standard move speed).
 - Side-scrolling speed is increased by 20%.
-- Both Normal and Speed Run modes use the same 20% faster sideways scroll speed baseline.
+- Speed Run mode scrolls sideways 20% faster than Normal mode.
 - Speed Run mode gives a 10% bonus to all points scored.
 
 ## Latest tuning

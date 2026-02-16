@@ -12,7 +12,7 @@ const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
 const BACKWARD_SPEED_MULTIPLIER = 2.6;
 const BASE_SCROLL_SPEED_MULTIPLIER = 1;
-const MODE_SCROLL_MULTIPLIER = 1.2;
+const SPEED_RUN_SCROLL_MULTIPLIER = 1.2;
 const SPEED_RUN_ENEMY_MULTIPLIER = 1.1;
 const SPEED_RUN_SCORE_MULTIPLIER = 1.1;
 const JUMP_FORCE = -17.75;
@@ -101,11 +101,11 @@ const CHARACTER_PALETTES = {
 const RUN_MODES = {
   normal: {
     name: "Normal Run",
-    scrollMultiplier: MODE_SCROLL_MULTIPLIER,
+    scrollMultiplier: 1,
   },
   speed: {
     name: "Speed Run",
-    scrollMultiplier: MODE_SCROLL_MULTIPLIER,
+    scrollMultiplier: SPEED_RUN_SCROLL_MULTIPLIER,
   },
 };
 
@@ -864,12 +864,12 @@ function drawModeSelectScreen() {
   ctx.font = "bold 24px Segoe UI";
   ctx.fillText("1 - Normal", leftX + 90, cardY + 92);
   ctx.font = "18px Segoe UI";
-  ctx.fillText("+20% side scroll", leftX + 90, cardY + 132);
+  ctx.fillText("Standard scroll", leftX + 90, cardY + 132);
 
   ctx.font = "bold 24px Segoe UI";
   ctx.fillText("2 - Speed Run", rightX + 90, cardY + 92);
   ctx.font = "18px Segoe UI";
-  ctx.fillText("+10% score bonus", rightX + 90, cardY + 132);
+  ctx.fillText("+20% scroll, +10% score", rightX + 90, cardY + 132);
   ctx.textAlign = "start";
 }
 
