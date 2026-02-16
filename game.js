@@ -11,9 +11,10 @@ const keys = {
 const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
 const BACKWARD_SPEED_MULTIPLIER = 2.6;
-const BASE_SCROLL_SPEED_MULTIPLIER = 1.2;
-const SPEED_RUN_SCROLL_MULTIPLIER = 1.2;
+const BASE_SCROLL_SPEED_MULTIPLIER = 1;
+const MODE_SCROLL_MULTIPLIER = 1.2;
 const SPEED_RUN_ENEMY_MULTIPLIER = 1.1;
+const SPEED_RUN_SCORE_MULTIPLIER = 1.1;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
@@ -100,11 +101,11 @@ const CHARACTER_PALETTES = {
 const RUN_MODES = {
   normal: {
     name: "Normal Run",
-    scrollMultiplier: 1,
+    scrollMultiplier: MODE_SCROLL_MULTIPLIER,
   },
   speed: {
     name: "Speed Run",
-    scrollMultiplier: SPEED_RUN_SCROLL_MULTIPLIER,
+    scrollMultiplier: MODE_SCROLL_MULTIPLIER,
   },
 };
 
@@ -143,11 +144,20 @@ const world = {
   selectedCharacter: null,
   isNewHighScore: false,
   deaths: 0,
-  menuUnlocked: false,
+  hills: [],
 };
 
 function currentLevel() {
   return LEVELS[world.currentLevelIndex];
+}
+
+function currentMode() {
+  return RUN_MODES[world.selectedMode] || RUN_MODES.normal;
+}
+
+function addScore(points) {
+  const speedBonus = world.selectedMode === "speed" ? SPEED_RUN_SCORE_MULTIPLIER : 1;
+  world.score += points * speedBonus;
 }
 
 function finalizeRun(gameWon) {
@@ -159,9 +169,6 @@ function finalizeRun(gameWon) {
 
   if (!gameWon) {
     world.deaths += 1;
-    if (world.deaths >= 10) {
-      world.menuUnlocked = true;
-    }
   }
 }
 
@@ -319,6 +326,14 @@ function startModeSelect() {
   world.paused = false;
 }
 
+function startCharacterSelect() {
+  if (!world.selectedMode) return;
+  world.awaitingModeSelect = false;
+  world.awaitingCharacterSelect = true;
+  world.selectedCharacter = null;
+  world.paused = false;
+}
+
 function chooseMode(modeKey) {
   if (!RUN_MODES[modeKey]) return;
   world.selectedMode = modeKey;
@@ -333,6 +348,24 @@ function chooseCharacter(characterKey) {
   restartGame();
 }
 
+function buildRandomHills(level) {
+  const hills = [];
+  const count = 12 + level.id * 3;
+  const maxX = level.levelLength + canvas.width + 400;
+
+  for (let i = 0; i < count; i += 1) {
+    hills.push({
+      x: Math.random() * maxX - 300,
+      y: 330 + Math.random() * 120,
+      width: 70 + Math.random() * 120,
+      depth: 0.45 + Math.random() * 0.65,
+      color: "#4caf50",
+    });
+  }
+
+  return hills.sort((a, b) => a.depth - b.depth);
+}
+
 function buildLevel(level) {
   world.offsetX = 0;
   world.chunks = generateSafeTerrain(level);
@@ -340,6 +373,7 @@ function buildLevel(level) {
   world.flag = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
   world.star = placeStar(level, world.chunks);
+  world.hills = buildRandomHills(level);
 
   player.x = 180;
   player.y = world.chunks[0].y - player.h;
@@ -487,7 +521,7 @@ function handleEnemyCollisions(previousY) {
     if (stomped) {
       enemy.alive = false;
       player.vy = -9.5;
-      world.score += STOMP_SCORE;
+      addScore(STOMP_SCORE);
       continue;
     }
 
@@ -512,7 +546,7 @@ function handleStarCollection() {
   if (Math.abs(px - world.star.x) < 26 && Math.abs(py - world.star.y) < 30) {
     world.star.collected = true;
     world.collectedStars += 1;
-    world.score += world.star.value;
+    addScore(world.star.value);
   }
 }
 
@@ -541,9 +575,9 @@ function update() {
   player.x += player.vx;
   player.x = Math.max(80, Math.min(canvas.width - player.w - 90, player.x));
 
-  const mode = RUN_MODES[world.selectedMode] || RUN_MODES.normal;
+  const mode = currentMode();
   world.offsetX += (level.baseSpeed + Math.max(0, player.vx * 0.55)) * BASE_SCROLL_SPEED_MULTIPLIER * mode.scrollMultiplier;
-  world.score += level.baseSpeed * 0.13 + Math.max(0, player.vx * 0.05);
+  addScore(level.baseSpeed * 0.13 + Math.max(0, player.vx * 0.05));
 
   if (keys.jump && player.onGround) {
     player.vy = JUMP_FORCE;
@@ -576,7 +610,7 @@ function update() {
   }
 
   if (level.hasPipe && isAtPipe() && keys.down) {
-    world.score += PIPE_BONUS;
+    addScore(PIPE_BONUS);
     world.transitioning = true;
     world.transitionTimer = 72;
     world.nextLevelIndex = Math.min(LEVELS.length - 1, world.currentLevelIndex + 1);
@@ -584,7 +618,7 @@ function update() {
   }
 
   if (level.hasFlag && world.flag && world.offsetX >= world.flag.x - 60) {
-    world.score += WIN_BONUS;
+    addScore(WIN_BONUS);
     finalizeRun(true);
   }
 }
@@ -595,26 +629,18 @@ function drawBackground() {
   ctx.arc(140, 96, 44, 0, Math.PI * 2);
   ctx.fill();
 
-  const hillDrift = (world.offsetX * 0.35) % 1800;
-  const hillBands = [
-    { y: 360, color: "#8ed796", size: 90, drift: 1.15 },
-    { y: 386, color: "#84d18d", size: 105, drift: 0.98 },
-    { y: 412, color: "#79c982", size: 120, drift: 0.82 },
-    { y: 438, color: "#6fc178", size: 135, drift: 0.68 },
-  ];
+  for (const hill of world.hills) {
+    const x = hill.x - world.offsetX * hill.depth;
+    const wrappedX = ((x % 1800) + 1800) % 1800 - 300;
+    const y = hill.y;
 
-  for (const band of hillBands) {
-    ctx.fillStyle = band.color;
-    for (let i = -4; i < 12; i += 1) {
-      const spacing = 150;
-      const hx = i * spacing - (hillDrift * band.drift) % spacing;
-      ctx.beginPath();
-      ctx.ellipse(hx + spacing * 0.5, band.y, band.size, band.size * 0.44, 0, Math.PI, 0);
-      ctx.lineTo(hx + spacing, canvas.height);
-      ctx.lineTo(hx, canvas.height);
-      ctx.closePath();
-      ctx.fill();
-    }
+    ctx.fillStyle = hill.color;
+    ctx.beginPath();
+    ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.46, 0, Math.PI, 0);
+    ctx.lineTo(wrappedX + hill.width * 2, canvas.height);
+    ctx.lineTo(wrappedX, canvas.height);
+    ctx.closePath();
+    ctx.fill();
   }
 
   const cloudDrift = (world.offsetX * 0.18) % 1200;
@@ -759,7 +785,7 @@ function drawHUD() {
   ctx.fillText(`Best: ${world.best}`, 24, 66);
   ctx.fillText(`${level.name}: ${level.objective}`, 24, 91);
   ctx.fillText(`Stars: ${world.collectedStars}`, 300, 66);
-  ctx.fillText(`Mode: ${(RUN_MODES[world.selectedMode] || RUN_MODES.normal).name}`, 24, 112);
+  ctx.fillText(`Mode: ${currentMode().name}`, 24, 112);
   ctx.fillText(`Deaths: ${world.deaths}`, 300, 91);
 
   if (level.hasPipe && isAtPipe() && !world.transitioning) {
@@ -804,13 +830,13 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.93!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.94!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
-    ctx.fillText(world.isNewHighScore ? "New High Score!" : "No new high score", canvas.width / 2, canvas.height / 2 + 6);
-    ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
-    if (world.menuUnlocked) {
-      ctx.fillText("Press M to reopen mode + character select", canvas.width / 2, canvas.height / 2 + 74);
+    if (world.isNewHighScore) {
+      ctx.fillText("New High Score!", canvas.width / 2, canvas.height / 2 + 6);
     }
+    ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText("Press M to change mode or C to change character", canvas.width / 2, canvas.height / 2 + 74);
     ctx.textAlign = "start";
   }
 }
@@ -838,12 +864,12 @@ function drawModeSelectScreen() {
   ctx.font = "bold 24px Segoe UI";
   ctx.fillText("1 - Normal", leftX + 90, cardY + 92);
   ctx.font = "18px Segoe UI";
-  ctx.fillText("Base side scroll", leftX + 90, cardY + 132);
+  ctx.fillText("+20% side scroll", leftX + 90, cardY + 132);
 
   ctx.font = "bold 24px Segoe UI";
   ctx.fillText("2 - Speed Run", rightX + 90, cardY + 92);
   ctx.font = "18px Segoe UI";
-  ctx.fillText("+20% side scroll", rightX + 90, cardY + 132);
+  ctx.fillText("+10% score bonus", rightX + 90, cardY + 132);
   ctx.textAlign = "start";
 }
 
@@ -931,8 +957,13 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.code === "KeyM" && world.menuUnlocked) {
+  if (event.code === "KeyM") {
     startModeSelect();
+    return;
+  }
+
+  if (event.code === "KeyC") {
+    startCharacterSelect();
     return;
   }
 

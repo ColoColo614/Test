@@ -1,4 +1,4 @@
-# Mini Plumber Run 1.93
+# Mini Plumber Run 1.94
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -14,7 +14,7 @@ Then open `http://localhost:8000`.
 
 - At launch, choose your run mode first:
   - `1`: Normal Run
-  - `2`: Speed Run (20% faster sideways scroll)
+  - `2`: Speed Run (+10% score bonus)
 - Then choose your character:
   - `1`: Classic
   - `2`: Green suit
@@ -40,14 +40,15 @@ Then open `http://localhost:8000`.
 - `Space` or `↑`: Jump
 - `↓`: Enter pipe in levels that have one, or drop through a platform when standing on one
 - `R`: Pause/resume during a level, or restart after game over/winning
-- `M`: Reopen mode + character selection after 10 total deaths
+- `M`: Reopen mode selection at any time
+- `C`: Reopen character selection at any time
 
 ## Movement tuning
 
 - Moving left (backward) was doubled from its prior tuning (now much faster than standard move speed).
 - Side-scrolling speed is increased by 20%.
-- Speed Run mode adds another 20% sideways scroll speed boost.
-- In Speed Run mode, enemies in Levels 1–4 are 10% faster.
+- Both Normal and Speed Run modes use the same 20% faster sideways scroll speed baseline.
+- Speed Run mode gives a 10% bonus to all points scored.
 
 ## Latest tuning
 
@@ -56,6 +57,7 @@ Then open `http://localhost:8000`.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than Level 3 enemies.
 - Level 5 enemies were increased by another 10% (now ~21% faster than Level 4 enemies).
+- In Speed Run mode, enemies in Levels 1–4 are 10% faster.
 
 - Land chunks between gaps now generate at varied altitudes.
 
