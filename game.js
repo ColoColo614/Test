@@ -730,17 +730,25 @@ function drawChunk(chunk) {
   const x = chunk.x - world.offsetX;
 
   if (chunk.kind === "ground") {
-    ctx.fillStyle = "#6c4f31";
+    const dirtGradient = ctx.createLinearGradient(0, chunk.y, 0, canvas.height);
+    dirtGradient.addColorStop(0, "#7a5635");
+    dirtGradient.addColorStop(1, "#4f351f");
+    ctx.fillStyle = dirtGradient;
     ctx.fillRect(x, chunk.y, chunk.width, chunk.height);
+
     ctx.fillStyle = "#3f9d4f";
     ctx.fillRect(x, chunk.y - 10, chunk.width, 10);
+    ctx.fillStyle = "#73c57d";
+    ctx.fillRect(x, chunk.y - 10, chunk.width, 3);
     return;
   }
 
-  ctx.fillStyle = "#8f5938";
+  ctx.fillStyle = "#7f4f30";
   ctx.fillRect(x, chunk.y, chunk.width, chunk.height);
   ctx.fillStyle = "#d6b077";
   ctx.fillRect(x + 4, chunk.y + 4, chunk.width - 8, chunk.height - 8);
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillRect(x + 6, chunk.y + 6, chunk.width - 12, 4);
 }
 
 function drawPipe() {
@@ -749,10 +757,16 @@ function drawPipe() {
   const x = world.pipe.x - world.offsetX;
   const y = world.pipe.groundY - world.pipe.height;
 
-  ctx.fillStyle = "#1f9a38";
+  const bodyGradient = ctx.createLinearGradient(x, y, x + world.pipe.width, y);
+  bodyGradient.addColorStop(0, "#2db54e");
+  bodyGradient.addColorStop(1, "#1b7f33");
+  ctx.fillStyle = bodyGradient;
   ctx.fillRect(x, y + 10, world.pipe.width, world.pipe.height - 10);
+
   ctx.fillStyle = "#35c04f";
   ctx.fillRect(x - 8, y, world.pipe.width + 16, 16);
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.fillRect(x - 6, y + 2, world.pipe.width * 0.42, 4);
 }
 
 function drawCastle() {
@@ -760,16 +774,42 @@ function drawCastle() {
 
   const x = world.castle.x - world.offsetX;
   const y = world.castle.y;
+  const { width, height } = world.castle;
 
-  ctx.fillStyle = "#6f6f7d";
-  ctx.fillRect(x, y, world.castle.width, world.castle.height);
-  ctx.fillStyle = "#8b8b99";
-  ctx.fillRect(x + 6, y + 8, world.castle.width - 12, world.castle.height - 14);
+  const wallGradient = ctx.createLinearGradient(x, y, x + width, y + height);
+  wallGradient.addColorStop(0, "#a2a2b3");
+  wallGradient.addColorStop(1, "#6c6c7f");
+  ctx.fillStyle = wallGradient;
+  ctx.fillRect(x, y, width, height);
 
-  ctx.fillStyle = "#595965";
-  ctx.fillRect(x + 30, y + world.castle.height - 34, 22, 34);
-  ctx.fillRect(x + 8, y - 18, 16, 24);
-  ctx.fillRect(x + world.castle.width - 24, y - 18, 16, 24);
+  ctx.fillStyle = "#5f5f70";
+  const crenelW = 10;
+  for (let i = 0; i < width; i += crenelW + 3) {
+    ctx.fillRect(x + i, y - 10, crenelW, 10);
+  }
+
+  ctx.fillStyle = "#4f4f5d";
+  ctx.fillRect(x + 30, y + height - 36, 22, 36);
+  ctx.fillStyle = "#2d2d37";
+  ctx.fillRect(x + 35, y + height - 28, 4, 10);
+  ctx.fillRect(x + 43, y + height - 28, 4, 10);
+
+  ctx.fillStyle = "#7d7d8f";
+  ctx.fillRect(x + 6, y - 20, 17, 24);
+  ctx.fillRect(x + width - 23, y - 20, 17, 24);
+
+  ctx.fillStyle = "#31313d";
+  ctx.fillRect(x + 14, y + 20, 8, 12);
+  ctx.fillRect(x + width - 22, y + 20, 8, 12);
+
+  ctx.fillStyle = "#b5162c";
+  ctx.fillRect(x + width - 8, y - 34, 3, 24);
+  ctx.beginPath();
+  ctx.moveTo(x + width - 5, y - 34);
+  ctx.lineTo(x + width + 11, y - 29);
+  ctx.lineTo(x + width - 5, y - 24);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawFlag() {
@@ -814,8 +854,10 @@ function drawEnemies() {
     ctx.fillStyle = "#6e3f1f";
     ctx.fillRect(x, enemy.y + 10, enemy.w, enemy.h - 10);
 
-    ctx.fillStyle = "#8f552f";
+    ctx.fillStyle = "#9e6035";
     ctx.fillRect(x + 2, enemy.y, enemy.w - 4, 16);
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.fillRect(x + 5, enemy.y + 2, enemy.w - 12, 3);
 
     ctx.fillStyle = "#1d1d1d";
     ctx.fillRect(x + 8, enemy.y + 6, 4, 4);
