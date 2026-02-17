@@ -102,10 +102,20 @@ const RUN_MODES = {
   normal: {
     name: "Normal Run",
     scrollMultiplier: 1,
+    enemyMultiplier: 1,
+    moveMultiplier: 1,
   },
   speed: {
     name: "Speed Run",
     scrollMultiplier: SPEED_RUN_SCROLL_MULTIPLIER,
+    enemyMultiplier: 1,
+    moveMultiplier: 1,
+  },
+  easy: {
+    name: "Easy Mode",
+    scrollMultiplier: 0.8,
+    enemyMultiplier: 0.9,
+    moveMultiplier: 0.85,
   },
 };
 
@@ -297,8 +307,9 @@ function buildEnemies(level, chunks) {
     .sort((a, b) => a.x - b.x);
 
   const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
+  const mode = currentMode();
   const speedModeEnemyBoost = world.selectedMode === "speed" && level.id <= 4 ? SPEED_RUN_ENEMY_MULTIPLIER : 1;
-  const speedMultiplier = (level.enemySpeedMultiplier || 1) * speedModeEnemyBoost;
+  const speedMultiplier = (level.enemySpeedMultiplier || 1) * speedModeEnemyBoost * mode.enemyMultiplier;
 
   for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
     const chunk = candidates[i];
@@ -565,17 +576,18 @@ function update() {
   }
 
   const level = currentLevel();
+  const mode = currentMode();
   const previousX = player.x;
   const previousY = player.y;
 
   player.vx = 0;
-  if (keys.left) player.vx -= MOVE_SPEED * BACKWARD_SPEED_MULTIPLIER;
-  if (keys.right) player.vx += MOVE_SPEED;
+  const moveMultiplier = mode.moveMultiplier || 1;
+  if (keys.left) player.vx -= MOVE_SPEED * BACKWARD_SPEED_MULTIPLIER * moveMultiplier;
+  if (keys.right) player.vx += MOVE_SPEED * moveMultiplier;
 
   player.x += player.vx;
   player.x = Math.max(80, Math.min(canvas.width - player.w - 90, player.x));
 
-  const mode = currentMode();
   world.offsetX += (level.baseSpeed + Math.max(0, player.vx * 0.55)) * BASE_SCROLL_SPEED_MULTIPLIER * mode.scrollMultiplier;
   addScore(level.baseSpeed * 0.13 + Math.max(0, player.vx * 0.05));
 
@@ -850,26 +862,36 @@ function drawModeSelectScreen() {
   ctx.font = "bold 42px Segoe UI";
   ctx.fillText("Choose Your Run Mode", canvas.width / 2, 120);
   ctx.font = "22px Segoe UI";
-  ctx.fillText("Press 1 for Normal or 2 for Speed Run", canvas.width / 2, 160);
+  ctx.fillText("Press 1 for Normal, 2 for Speed, or 3 for Easy", canvas.width / 2, 160);
 
   const cardY = 220;
-  const leftX = 220;
-  const rightX = 560;
+  const leftX = 90;
+  const centerX = 390;
+  const rightX = 690;
 
   ctx.fillStyle = "rgba(255,255,255,0.12)";
   ctx.fillRect(leftX, cardY, 180, 220);
+  ctx.fillRect(centerX, cardY, 180, 220);
   ctx.fillRect(rightX, cardY, 180, 220);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px Segoe UI";
-  ctx.fillText("1 - Normal", leftX + 90, cardY + 92);
-  ctx.font = "18px Segoe UI";
-  ctx.fillText("Standard scroll", leftX + 90, cardY + 132);
+  ctx.fillText("1 - Normal", leftX + 90, cardY + 84);
+  ctx.font = "17px Segoe UI";
+  ctx.fillText("Standard", leftX + 90, cardY + 120);
 
   ctx.font = "bold 24px Segoe UI";
-  ctx.fillText("2 - Speed Run", rightX + 90, cardY + 92);
-  ctx.font = "18px Segoe UI";
-  ctx.fillText("+20% scroll, +10% score", rightX + 90, cardY + 132);
+  ctx.fillText("2 - Speed Run", centerX + 90, cardY + 84);
+  ctx.font = "17px Segoe UI";
+  ctx.fillText("+20% scroll", centerX + 90, cardY + 120);
+  ctx.fillText("+10% score", centerX + 90, cardY + 146);
+
+  ctx.font = "bold 24px Segoe UI";
+  ctx.fillText("3 - Easy Mode", rightX + 90, cardY + 84);
+  ctx.font = "17px Segoe UI";
+  ctx.fillText("-20% scroll", rightX + 90, cardY + 120);
+  ctx.fillText("-10% enemy speed", rightX + 90, cardY + 146);
+  ctx.fillText("-15% move speed", rightX + 90, cardY + 172);
   ctx.textAlign = "start";
 }
 
@@ -938,6 +960,7 @@ window.addEventListener("keydown", (event) => {
   if (world.awaitingModeSelect) {
     if (event.code === "Digit1" || event.code === "Numpad1") chooseMode("normal");
     if (event.code === "Digit2" || event.code === "Numpad2") chooseMode("speed");
+    if (event.code === "Digit3" || event.code === "Numpad3") chooseMode("easy");
     return;
   }
 
@@ -991,19 +1014,23 @@ canvas.addEventListener("click", (event) => {
   const y = (event.clientY - rect.top) * scaleY;
 
   const cardY = 220;
-  const leftX = 220;
-  const rightX = 560;
+  const modeLeftX = 90;
+  const modeCenterX = 390;
+  const modeRightX = 690;
+  const charLeftX = 220;
+  const charRightX = 560;
   const w = 180;
   const h = 220;
 
   if (world.awaitingModeSelect) {
-    if (x >= leftX && x <= leftX + w && y >= cardY && y <= cardY + h) chooseMode("normal");
-    if (x >= rightX && x <= rightX + w && y >= cardY && y <= cardY + h) chooseMode("speed");
+    if (x >= modeLeftX && x <= modeLeftX + w && y >= cardY && y <= cardY + h) chooseMode("normal");
+    if (x >= modeCenterX && x <= modeCenterX + w && y >= cardY && y <= cardY + h) chooseMode("speed");
+    if (x >= modeRightX && x <= modeRightX + w && y >= cardY && y <= cardY + h) chooseMode("easy");
     return;
   }
 
   if (!world.awaitingCharacterSelect) return;
 
-  if (x >= leftX && x <= leftX + w && y >= cardY && y <= cardY + h) chooseCharacter("classic");
-  if (x >= rightX && x <= rightX + w && y >= cardY && y <= cardY + h) chooseCharacter("green");
+  if (x >= charLeftX && x <= charLeftX + w && y >= cardY && y <= cardY + h) chooseCharacter("classic");
+  if (x >= charRightX && x <= charRightX + w && y >= cardY && y <= cardY + h) chooseCharacter("green");
 });

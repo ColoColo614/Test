@@ -14,7 +14,8 @@ Then open `http://localhost:8000`.
 
 - At launch, choose your run mode first:
   - `1`: Normal Run
-  - `2`: Speed Run (+10% score bonus)
+  - `2`: Speed Run (+20% scroll, +10% score bonus)
+  - `3`: Easy Mode (-20% scroll, -10% enemy speed, -15% move speed)
 - Then choose your character:
   - `1`: Classic
   - `2`: Green suit
@@ -49,6 +50,9 @@ Then open `http://localhost:8000`.
 - Side-scrolling speed is increased by 20%.
 - Speed Run mode scrolls sideways 20% faster than Normal mode.
 - Speed Run mode gives a 10% bonus to all points scored.
+- Easy Mode scrolls sideways 20% slower than Normal mode.
+- Easy Mode antagonists are 10% slower.
+- Easy Mode forward/backward character movement is 15% slower.
 
 ## Latest tuning
 
