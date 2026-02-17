@@ -71,6 +71,8 @@ Then open `http://localhost:8000`.
 
 - Secondary platforms are positioned above normal jump height from ground and are intended to be reached from other platforms.
 
-- Hills were made smaller and greener in the background.
+- Hills were made wider and greener in the background, with wavy placement.
 
 - End-of-run screen now tells you whether you set a new high score.
+- HUD tracks attempts instead of deaths.
+- Stars are placed before the level objective (pipe/flag), never after it.

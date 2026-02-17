@@ -153,7 +153,7 @@ const world = {
   selectedMode: null,
   selectedCharacter: null,
   isNewHighScore: false,
-  deaths: 0,
+  attempts: 0,
   hills: [],
 };
 
@@ -177,10 +177,8 @@ function finalizeRun(gameWon) {
   world.won = gameWon;
   world.gameOver = !gameWon;
 
-  if (!gameWon) {
-    world.deaths += 1;
-  }
 }
+
 
 function createChunk(startX, width, kind = "ground", heightOffset = 0) {
   const y = FLOOR_Y - heightOffset;
@@ -286,9 +284,15 @@ function placeFlagOnLand(level, chunks) {
   };
 }
 
-function placeStar(level, chunks) {
-  const platforms = chunks.filter((chunk) => chunk.kind === "platform" && chunk.y < FLOOR_Y - 120);
-  const pool = platforms.length ? platforms : chunks.filter((chunk) => chunk.kind === "ground" && chunk.x > level.levelLength * 0.65);
+function placeStar(level, chunks, pipe, flag) {
+  const objectiveX = pipe ? pipe.x : flag ? flag.x : level.levelLength;
+  const maxStarX = objectiveX - 180;
+
+  const platforms = chunks.filter((chunk) => chunk.kind === "platform" && chunk.y < FLOOR_Y - 120 && chunk.x + chunk.width <= maxStarX);
+  const fallbackGround = chunks.filter(
+    (chunk) => chunk.kind === "ground" && chunk.x > level.levelLength * 0.45 && chunk.x + chunk.width <= maxStarX,
+  );
+  const pool = platforms.length ? platforms : fallbackGround;
   if (!pool.length) return null;
 
   const hardest = pool.sort((a, b) => a.y - b.y)[0];
@@ -368,7 +372,7 @@ function buildRandomHills(level) {
     hills.push({
       x: Math.random() * maxX - 300,
       y: 330 + Math.random() * 120,
-      width: 70 + Math.random() * 120,
+      width: 120 + Math.random() * 170,
       depth: 0.45 + Math.random() * 0.65,
       color: "#4caf50",
     });
@@ -383,7 +387,7 @@ function buildLevel(level) {
   world.pipe = placePipeOnLand(level, world.chunks);
   world.flag = placeFlagOnLand(level, world.chunks);
   world.enemies = buildEnemies(level, world.chunks);
-  world.star = placeStar(level, world.chunks);
+  world.star = placeStar(level, world.chunks, world.pipe, world.flag);
   world.hills = buildRandomHills(level);
 
   player.x = 180;
@@ -394,6 +398,7 @@ function buildLevel(level) {
 }
 
 function restartGame() {
+  world.attempts += 1;
   world.score = 0;
   world.gameOver = false;
   world.won = false;
@@ -648,7 +653,7 @@ function drawBackground() {
 
     ctx.fillStyle = hill.color;
     ctx.beginPath();
-    ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.46, 0, Math.PI, 0);
+    ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.28, 0, Math.PI, 0);
     ctx.lineTo(wrappedX + hill.width * 2, canvas.height);
     ctx.lineTo(wrappedX, canvas.height);
     ctx.closePath();
@@ -798,7 +803,7 @@ function drawHUD() {
   ctx.fillText(`${level.name}: ${level.objective}`, 24, 91);
   ctx.fillText(`Stars: ${world.collectedStars}`, 300, 66);
   ctx.fillText(`Mode: ${currentMode().name}`, 24, 112);
-  ctx.fillText(`Deaths: ${world.deaths}`, 300, 91);
+  ctx.fillText(`Attempts: ${world.attempts}`, 300, 91);
 
   if (level.hasPipe && isAtPipe() && !world.transitioning) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
