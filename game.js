@@ -372,11 +372,23 @@ function chooseCharacter(characterKey) {
 
 function limitTerrainAfterObjective(chunks, objectiveX) {
   const sortedGround = chunks.filter((chunk) => chunk.kind === "ground").sort((a, b) => a.x - b.x);
-  const postObjectiveChunk = sortedGround.find((chunk) => chunk.x > objectiveX + 10);
-  if (!postObjectiveChunk) return chunks;
+  const objectiveGround = sortedGround.find((chunk) => objectiveX >= chunk.x && objectiveX <= chunk.x + chunk.width);
+  if (!objectiveGround) return chunks.filter((chunk) => chunk.kind === "ground" || chunk.x <= objectiveX);
 
+  const objectiveGroundEnd = objectiveGround.x + objectiveGround.width;
+  const postObjectiveChunk = sortedGround.find((chunk) => chunk.x >= objectiveGroundEnd - 1);
+
+  if (!postObjectiveChunk || postObjectiveChunk === objectiveGround) {
+    return chunks.filter((chunk) => chunk.kind === "ground" && chunk.x <= objectiveGround.x + 1);
+  }
+
+  postObjectiveChunk.x = objectiveGroundEnd;
   const endX = postObjectiveChunk.x + postObjectiveChunk.width;
-  return chunks.filter((chunk) => chunk.x < endX);
+
+  return chunks.filter((chunk) => {
+    if (chunk.kind === "platform" && chunk.x > objectiveX) return false;
+    return chunk.x < endX;
+  });
 }
 
 function buildCastle(chunks) {
