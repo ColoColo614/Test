@@ -12,9 +12,9 @@ const GRAVITY = 0.78;
 const MOVE_SPEED = 3.57; // 15% slower than the original baseline
 const BACKWARD_SPEED_MULTIPLIER = 2.6;
 const BASE_SCROLL_SPEED_MULTIPLIER = 1;
-const SPEED_RUN_SCROLL_MULTIPLIER = 1.2;
-const SPEED_RUN_ENEMY_MULTIPLIER = 1.1;
-const SPEED_RUN_SCORE_MULTIPLIER = 1.1;
+const HARD_MODE_SCROLL_MULTIPLIER = 1.2;
+const HARD_MODE_ENEMY_MULTIPLIER = 1.1;
+const HARD_MODE_SCORE_MULTIPLIER = 1.1;
 const JUMP_FORCE = -17.75;
 const FLOOR_Y = 440;
 
@@ -31,7 +31,7 @@ const LEVELS = [
     id: 1,
     name: "Level 1",
     baseSpeed: 3.0,
-    levelLength: 2850,
+    levelLength: 3278,
     objective: "Reach the pipe and press ↓",
     hasPipe: true,
     hasFlag: false,
@@ -41,42 +41,46 @@ const LEVELS = [
     id: 2,
     name: "Level 2",
     baseSpeed: 3.45,
-    levelLength: 3250,
+    levelLength: 3738,
     objective: "Use the second pipe to descend",
     hasPipe: true,
     hasFlag: false,
     enemyCount: 5,
+    enemyIncreaseRate: 0.05,
   },
   {
     id: 3,
     name: "Level 3",
     baseSpeed: 3.85,
-    levelLength: 3725,
+    levelLength: 4284,
     objective: "Reach the third pipe",
     hasPipe: true,
     hasFlag: false,
     enemyCount: 7,
+    enemyIncreaseRate: 0.1,
   },
   {
     id: 4,
     name: "Level 4",
     baseSpeed: 4.15,
-    levelLength: 4200,
+    levelLength: 4830,
     objective: "Reach the fourth pipe",
     hasPipe: true,
     hasFlag: false,
     enemyCount: 8,
+    enemyIncreaseRate: 0.15,
     enemySpeedMultiplier: 1.32,
   },
   {
     id: 5,
     name: "Level 5",
     baseSpeed: 4.35,
-    levelLength: 4480,
+    levelLength: 5152,
     objective: "Reach the final flag on land",
     hasPipe: false,
     hasFlag: true,
     enemyCount: 10,
+    enemyIncreaseRate: 0.2,
     enemySpeedMultiplier: 1.5972,
   },
 ];
@@ -105,9 +109,9 @@ const RUN_MODES = {
     enemyMultiplier: 1,
     moveMultiplier: 1,
   },
-  speed: {
-    name: "Speed Run",
-    scrollMultiplier: SPEED_RUN_SCROLL_MULTIPLIER,
+  hard: {
+    name: "Hard Mode",
+    scrollMultiplier: HARD_MODE_SCROLL_MULTIPLIER,
     enemyMultiplier: 1,
     moveMultiplier: 1,
   },
@@ -155,6 +159,7 @@ const world = {
   isNewHighScore: false,
   attempts: 0,
   hills: [],
+  castle: null,
 };
 
 function currentLevel() {
@@ -166,7 +171,7 @@ function currentMode() {
 }
 
 function addScore(points) {
-  const speedBonus = world.selectedMode === "speed" ? SPEED_RUN_SCORE_MULTIPLIER : 1;
+  const speedBonus = world.selectedMode === "hard" ? HARD_MODE_SCORE_MULTIPLIER : 1;
   world.score += points * speedBonus;
 }
 
@@ -310,12 +315,14 @@ function buildEnemies(level, chunks) {
     .filter((chunk) => chunk.kind === "ground" && chunk.width > 170 && chunk.x > 260 && chunk.x < level.levelLength - 220)
     .sort((a, b) => a.x - b.x);
 
-  const step = Math.max(1, Math.floor(candidates.length / Math.max(1, level.enemyCount)));
   const mode = currentMode();
-  const speedModeEnemyBoost = world.selectedMode === "speed" && level.id <= 4 ? SPEED_RUN_ENEMY_MULTIPLIER : 1;
-  const speedMultiplier = (level.enemySpeedMultiplier || 1) * speedModeEnemyBoost * mode.enemyMultiplier;
+  const hardModeEnemyBoost = world.selectedMode === "hard" && level.id <= 4 ? HARD_MODE_ENEMY_MULTIPLIER : 1;
+  const speedMultiplier = (level.enemySpeedMultiplier || 1) * hardModeEnemyBoost * mode.enemyMultiplier;
+  const expectedEnemyCount = level.enemyCount * (1 + (level.enemyIncreaseRate || 0));
+  const targetEnemyCount = Math.max(1, Math.floor(expectedEnemyCount) + (Math.random() < expectedEnemyCount % 1 ? 1 : 0));
+  const step = Math.max(1, Math.floor(candidates.length / targetEnemyCount));
 
-  for (let i = 0; i < candidates.length && enemies.length < level.enemyCount; i += step) {
+  for (let i = 0; i < candidates.length && enemies.length < targetEnemyCount; i += step) {
     const chunk = candidates[i];
     const margin = 24;
     enemies.push({
@@ -363,6 +370,26 @@ function chooseCharacter(characterKey) {
   restartGame();
 }
 
+function limitTerrainAfterObjective(chunks, objectiveX) {
+  const sortedGround = chunks.filter((chunk) => chunk.kind === "ground").sort((a, b) => a.x - b.x);
+  const postObjectiveChunk = sortedGround.find((chunk) => chunk.x > objectiveX + 10);
+  if (!postObjectiveChunk) return chunks;
+
+  const endX = postObjectiveChunk.x + postObjectiveChunk.width;
+  return chunks.filter((chunk) => chunk.x < endX);
+}
+
+function buildCastle(chunks) {
+  const lastGround = [...chunks].filter((chunk) => chunk.kind === "ground").sort((a, b) => b.x - a.x)[0];
+  if (!lastGround) return null;
+
+  const width = 82;
+  const height = 74;
+  const x = lastGround.x + Math.max(8, lastGround.width - width - 10);
+  const y = lastGround.y - height;
+  return { x, y, width, height };
+}
+
 function buildRandomHills(level) {
   const hills = [];
   const count = 12 + level.id * 3;
@@ -386,9 +413,13 @@ function buildLevel(level) {
   world.chunks = generateSafeTerrain(level);
   world.pipe = placePipeOnLand(level, world.chunks);
   world.flag = placeFlagOnLand(level, world.chunks);
+
+  const objectiveX = world.pipe ? world.pipe.x : world.flag ? world.flag.x : level.levelLength;
+  world.chunks = limitTerrainAfterObjective(world.chunks, objectiveX);
   world.enemies = buildEnemies(level, world.chunks);
   world.star = placeStar(level, world.chunks, world.pipe, world.flag);
   world.hills = buildRandomHills(level);
+  world.castle = buildCastle(world.chunks);
 
   player.x = 180;
   player.y = world.chunks[0].y - player.h;
@@ -712,6 +743,23 @@ function drawPipe() {
   ctx.fillRect(x - 8, y, world.pipe.width + 16, 16);
 }
 
+function drawCastle() {
+  if (!world.castle) return;
+
+  const x = world.castle.x - world.offsetX;
+  const y = world.castle.y;
+
+  ctx.fillStyle = "#6f6f7d";
+  ctx.fillRect(x, y, world.castle.width, world.castle.height);
+  ctx.fillStyle = "#8b8b99";
+  ctx.fillRect(x + 6, y + 8, world.castle.width - 12, world.castle.height - 14);
+
+  ctx.fillStyle = "#595965";
+  ctx.fillRect(x + 30, y + world.castle.height - 34, 22, 34);
+  ctx.fillRect(x + 8, y - 18, 16, 24);
+  ctx.fillRect(x + world.castle.width - 24, y - 18, 16, 24);
+}
+
 function drawFlag() {
   const level = currentLevel();
   if (!level.hasFlag || !world.flag) return;
@@ -847,7 +895,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.94!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run vrs. 1.96!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     if (world.isNewHighScore) {
       ctx.fillText("New High Score!", canvas.width / 2, canvas.height / 2 + 6);
@@ -867,7 +915,7 @@ function drawModeSelectScreen() {
   ctx.font = "bold 42px Segoe UI";
   ctx.fillText("Choose Your Run Mode", canvas.width / 2, 120);
   ctx.font = "22px Segoe UI";
-  ctx.fillText("Press 1 for Normal, 2 for Speed, or 3 for Easy", canvas.width / 2, 160);
+  ctx.fillText("Press 1 for Normal, 2 for Hard, or 3 for Easy", canvas.width / 2, 160);
 
   const cardY = 220;
   const leftX = 90;
@@ -886,7 +934,7 @@ function drawModeSelectScreen() {
   ctx.fillText("Standard", leftX + 90, cardY + 120);
 
   ctx.font = "bold 24px Segoe UI";
-  ctx.fillText("2 - Speed Run", centerX + 90, cardY + 84);
+  ctx.fillText("2 - Hard Mode", centerX + 90, cardY + 84);
   ctx.font = "17px Segoe UI";
   ctx.fillText("+20% scroll", centerX + 90, cardY + 120);
   ctx.fillText("+10% score", centerX + 90, cardY + 146);
@@ -949,6 +997,7 @@ function render() {
 
   drawPipe();
   drawFlag();
+  drawCastle();
   drawStar();
   drawEnemies();
   drawPlayer();
@@ -964,7 +1013,7 @@ function loop() {
 window.addEventListener("keydown", (event) => {
   if (world.awaitingModeSelect) {
     if (event.code === "Digit1" || event.code === "Numpad1") chooseMode("normal");
-    if (event.code === "Digit2" || event.code === "Numpad2") chooseMode("speed");
+    if (event.code === "Digit2" || event.code === "Numpad2") chooseMode("hard");
     if (event.code === "Digit3" || event.code === "Numpad3") chooseMode("easy");
     return;
   }
@@ -1029,7 +1078,7 @@ canvas.addEventListener("click", (event) => {
 
   if (world.awaitingModeSelect) {
     if (x >= modeLeftX && x <= modeLeftX + w && y >= cardY && y <= cardY + h) chooseMode("normal");
-    if (x >= modeCenterX && x <= modeCenterX + w && y >= cardY && y <= cardY + h) chooseMode("speed");
+    if (x >= modeCenterX && x <= modeCenterX + w && y >= cardY && y <= cardY + h) chooseMode("hard");
     if (x >= modeRightX && x <= modeRightX + w && y >= cardY && y <= cardY + h) chooseMode("easy");
     return;
   }

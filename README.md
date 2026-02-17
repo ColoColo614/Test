@@ -1,4 +1,4 @@
-# Mini Plumber Run 1.94
+# Mini Plumber Run vrs. 1.96
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -14,7 +14,7 @@ Then open `http://localhost:8000`.
 
 - At launch, choose your run mode first:
   - `1`: Normal Run
-  - `2`: Speed Run (+20% scroll, +10% score bonus)
+  - `2`: Hard Mode (+20% scroll, +10% score bonus)
   - `3`: Easy Mode (-20% scroll, -10% enemy speed, -15% move speed)
 - Then choose your character:
   - `1`: Classic
@@ -48,20 +48,25 @@ Then open `http://localhost:8000`.
 
 - Moving left (backward) was doubled from its prior tuning (now much faster than standard move speed).
 - Side-scrolling speed is increased by 20%.
-- Speed Run mode scrolls sideways 20% faster than Normal mode.
-- Speed Run mode gives a 10% bonus to all points scored.
+- Hard Mode scrolls sideways 20% faster than Normal mode.
+- Hard Mode gives a 10% bonus to all points scored.
 - Easy Mode scrolls sideways 20% slower than Normal mode.
 - Easy Mode antagonists are 10% slower.
 - Easy Mode forward/backward character movement is 15% slower.
 
 ## Latest tuning
 
+
+- Levels are tuned to be about 15% longer on average.
+- Antagonist counts increase on average by level: +5% (L2), +10% (L3), +15% (L4), +20% (L5).
+- Terrain now ends shortly after the objective: only one chunk appears after each pipe/flag.
+- A small castle appears on the final chunk.
 - Chunks are ~30% longer on average and there are about 20% fewer gaps on average.
 - Secondary platforms now appear in front of primary platforms, and platform spawn frequency is increased by 25%.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than Level 3 enemies.
 - Level 5 enemies were increased by another 10% (now ~21% faster than Level 4 enemies).
-- In Speed Run mode, enemies in Levels 1–4 are 10% faster.
+- In Hard Mode, enemies in Levels 1–4 are 10% faster.
 
 - Land chunks between gaps now generate at varied altitudes.
 
