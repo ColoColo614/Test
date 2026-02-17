@@ -1,4 +1,4 @@
-# Mini Plumber Run vrs. 1.96
+# Mini Plumber Run 1.97
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
