@@ -25,6 +25,8 @@ const SPAWN_SAFE_RUNWAY = 560;
 const STOMP_SCORE = 120;
 const PIPE_BONUS = 220;
 const WIN_BONUS = 1500;
+const VENUS_PIPE_SCALE = 0.6;
+const VENUS_CYCLE_FRAMES = 180;
 
 const LEVELS = [
   {
@@ -160,6 +162,7 @@ const world = {
   attempts: 0,
   hills: [],
   castle: null,
+  flytraps: [],
 };
 
 function currentLevel() {
@@ -340,6 +343,43 @@ function buildEnemies(level, chunks) {
   return enemies;
 }
 
+function buildFlytraps(level, chunks, objectiveX) {
+  const flytraps = [];
+  const hazardPipeWidth = Math.round(64 * VENUS_PIPE_SCALE);
+  const hazardPipeHeight = Math.round(86 * VENUS_PIPE_SCALE);
+  const candidates = chunks
+    .filter(
+      (chunk) =>
+        chunk.kind === "ground" &&
+        chunk.width > 170 &&
+        chunk.x > 460 &&
+        chunk.x + chunk.width < objectiveX - 110,
+    )
+    .sort((a, b) => a.x - b.x);
+
+  const targetCount = Math.max(1, Math.min(4, 1 + Math.floor(level.id * 0.75)));
+  const step = Math.max(1, Math.floor(candidates.length / targetCount));
+
+  for (let i = 0; i < candidates.length && flytraps.length < targetCount; i += step) {
+    const chunk = candidates[i];
+    const x = chunk.x + Math.min(chunk.width - hazardPipeWidth - 18, 18 + Math.random() * 64);
+
+    flytraps.push({
+      x,
+      groundY: chunk.y,
+      pipeWidth: hazardPipeWidth,
+      pipeHeight: hazardPipeHeight,
+      headWidth: 28,
+      headHeight: 28,
+      emerge: 0,
+      visible: Math.random() < 0.5,
+      timer: Math.floor(Math.random() * VENUS_CYCLE_FRAMES),
+    });
+  }
+
+  return flytraps;
+}
+
 function startModeSelect() {
   world.awaitingModeSelect = true;
   world.awaitingCharacterSelect = false;
@@ -429,6 +469,7 @@ function buildLevel(level) {
   const objectiveX = world.pipe ? world.pipe.x : world.flag ? world.flag.x : level.levelLength;
   world.chunks = limitTerrainAfterObjective(world.chunks, objectiveX);
   world.enemies = buildEnemies(level, world.chunks);
+  world.flytraps = buildFlytraps(level, world.chunks, objectiveX);
   world.star = placeStar(level, world.chunks, world.pipe, world.flag);
   world.hills = buildRandomHills(level);
   world.castle = buildCastle(world.chunks);
@@ -547,6 +588,46 @@ function updateEnemies() {
   }
 }
 
+function updateFlytraps() {
+  for (const trap of world.flytraps) {
+    trap.timer -= 1;
+    if (trap.timer <= 0) {
+      trap.visible = !trap.visible;
+      trap.timer = VENUS_CYCLE_FRAMES;
+    }
+
+    const targetEmerge = trap.visible ? 1 : 0;
+    trap.emerge += (targetEmerge - trap.emerge) * 0.08;
+  }
+}
+
+function handleFlytrapCollisions() {
+  const playerRect = playerEnemyWorldRect();
+
+  for (const trap of world.flytraps) {
+    if (trap.emerge < 0.18) continue;
+
+    const centerX = trap.x + trap.pipeWidth / 2;
+    const headW = trap.headWidth;
+    const headH = trap.headHeight;
+    const topY = trap.groundY - trap.pipeHeight - headH * trap.emerge;
+    const left = centerX - headW / 2;
+    const right = centerX + headW / 2;
+    const bottom = topY + headH;
+
+    const touching =
+      playerRect.right > left &&
+      playerRect.left < right &&
+      playerRect.bottom > topY &&
+      playerRect.top < bottom;
+
+    if (touching) {
+      finalizeRun(false);
+      return;
+    }
+  }
+}
+
 function playerEnemyWorldRect() {
   return {
     left: world.offsetX + player.x,
@@ -660,7 +741,9 @@ function update() {
   resolveCollisions(previousX, previousY);
   handleStarCollection();
   updateEnemies();
+  updateFlytraps();
   handleEnemyCollisions(previousY);
+  handleFlytrapCollisions();
 
   if (world.gameOver) return;
 
@@ -743,12 +826,29 @@ function drawChunk(chunk) {
     return;
   }
 
-  ctx.fillStyle = "#7f4f30";
+  ctx.fillStyle = "#9a3a2a";
   ctx.fillRect(x, chunk.y, chunk.width, chunk.height);
-  ctx.fillStyle = "#d6b077";
-  ctx.fillRect(x + 4, chunk.y + 4, chunk.width - 8, chunk.height - 8);
-  ctx.fillStyle = "rgba(255,255,255,0.12)";
-  ctx.fillRect(x + 6, chunk.y + 6, chunk.width - 12, 4);
+  ctx.fillStyle = "#bd5b45";
+  ctx.fillRect(x + 2, chunk.y + 2, chunk.width - 4, chunk.height - 4);
+
+  ctx.strokeStyle = "rgba(71, 22, 14, 0.65)";
+  ctx.lineWidth = 2;
+  const rowA = chunk.y + 7;
+  const rowB = chunk.y + 14;
+  ctx.beginPath();
+  ctx.moveTo(x + 1, rowA);
+  ctx.lineTo(x + chunk.width - 1, rowA);
+  ctx.moveTo(x + 1, rowB);
+  ctx.lineTo(x + chunk.width - 1, rowB);
+  for (let bx = x + 14; bx < x + chunk.width - 4; bx += 28) {
+    ctx.moveTo(bx, chunk.y + 2);
+    ctx.lineTo(bx, rowA);
+  }
+  for (let bx = x + 28; bx < x + chunk.width - 4; bx += 28) {
+    ctx.moveTo(bx, rowA);
+    ctx.lineTo(bx, rowB);
+  }
+  ctx.stroke();
 }
 
 function drawPipe() {
@@ -767,6 +867,45 @@ function drawPipe() {
   ctx.fillRect(x - 8, y, world.pipe.width + 16, 16);
   ctx.fillStyle = "rgba(255,255,255,0.25)";
   ctx.fillRect(x - 6, y + 2, world.pipe.width * 0.42, 4);
+}
+
+function drawFlytraps() {
+  for (const trap of world.flytraps) {
+    const pipeX = trap.x - world.offsetX;
+    const pipeY = trap.groundY - trap.pipeHeight;
+
+    const bodyGradient = ctx.createLinearGradient(pipeX, pipeY, pipeX + trap.pipeWidth, pipeY);
+    bodyGradient.addColorStop(0, "#2db54e");
+    bodyGradient.addColorStop(1, "#1b7f33");
+    ctx.fillStyle = bodyGradient;
+    ctx.fillRect(pipeX, pipeY + 6, trap.pipeWidth, trap.pipeHeight - 6);
+    ctx.fillStyle = "#3cc95a";
+    ctx.fillRect(pipeX - 5, pipeY, trap.pipeWidth + 10, 10);
+
+    if (trap.emerge < 0.12) continue;
+
+    const centerX = pipeX + trap.pipeWidth / 2;
+    const headW = trap.headWidth;
+    const headH = trap.headHeight;
+    const headY = pipeY - headH * trap.emerge;
+
+    ctx.fillStyle = "#2aaf45";
+    ctx.fillRect(centerX - 5, pipeY - 2, 10, -(headH * trap.emerge - 2));
+
+    ctx.fillStyle = "#d42934";
+    ctx.beginPath();
+    ctx.ellipse(centerX, headY + headH * 0.55, headW * 0.48, headH * 0.52, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffd6db";
+    ctx.beginPath();
+    ctx.ellipse(centerX, headY + headH * 0.62, headW * 0.26, headH * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(centerX - 7, headY + headH * 0.57, 3, 6);
+    ctx.fillRect(centerX + 4, headY + headH * 0.57, 3, 6);
+  }
 }
 
 function drawCastle() {
@@ -1078,6 +1217,7 @@ function render() {
 
   drawPipe();
   drawFlag();
+  drawFlytraps();
   drawCastle();
   drawStar();
   drawEnemies();

@@ -28,6 +28,7 @@ Then open `http://localhost:8000`.
 - Clear **Level 5** where enemies are the fastest, and reach the final flag that spawns on land.
 - Avoid enemies: touching one from the side causes a loss.
 - Defeat enemies by landing on top of them.
+- Beware Venus fly traps in smaller pipes: touching them from the top or side causes a loss. They rise for 3 seconds, then stay underground for 3 seconds before returning.
 
 ## Scoring
 
@@ -63,6 +64,7 @@ Then open `http://localhost:8000`.
 - A small castle appears on the final chunk.
 - Chunks are ~30% longer on average and there are about 20% fewer gaps on average.
 - Secondary platforms now appear in front of primary platforms, and platform spawn frequency is increased by 25%.
+- Platforms now render as brick blocks.
 - Level 3 enemies move 20% faster than baseline.
 - Level 4 enemies move 10% faster than Level 3 enemies.
 - Level 5 enemies were increased by another 10% (now ~21% faster than Level 4 enemies).
