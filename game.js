@@ -270,6 +270,21 @@ function placePipeOnLand(level, chunks) {
   };
 }
 
+function removePlatformsAbovePipe(chunks, pipe) {
+  if (!pipe) return chunks;
+  const pad = 10;
+  const pipeLeft = pipe.x - pad;
+  const pipeRight = pipe.x + pipe.width + pad;
+
+  return chunks.filter((chunk) => {
+    if (chunk.kind !== "platform") return true;
+    const overlapsPipe = chunk.x < pipeRight && chunk.x + chunk.width > pipeLeft;
+    const isAboveGround = chunk.y < pipe.groundY;
+    if (overlapsPipe && isAboveGround) return false;
+    return true;
+  });
+}
+
 function placeFlagOnLand(level, chunks) {
   if (!level.hasFlag) return null;
 
@@ -364,6 +379,7 @@ function buildFlytraps(level, chunks, objectiveX) {
     const chunk = candidates[i];
     const x = chunk.x + Math.min(chunk.width - hazardPipeWidth - 18, 18 + Math.random() * 64);
 
+    const hasTrap = Math.random() < 0.72;
     flytraps.push({
       x,
       groundY: chunk.y,
@@ -371,8 +387,9 @@ function buildFlytraps(level, chunks, objectiveX) {
       pipeHeight: hazardPipeHeight,
       headWidth: 28,
       headHeight: 28,
+      hasTrap,
       emerge: 0,
-      visible: Math.random() < 0.5,
+      visible: hasTrap ? Math.random() < 0.5 : false,
       timer: Math.floor(Math.random() * VENUS_CYCLE_FRAMES),
     });
   }
@@ -464,6 +481,7 @@ function buildLevel(level) {
   world.offsetX = 0;
   world.chunks = generateSafeTerrain(level);
   world.pipe = placePipeOnLand(level, world.chunks);
+  world.chunks = removePlatformsAbovePipe(world.chunks, world.pipe);
   world.flag = placeFlagOnLand(level, world.chunks);
 
   const objectiveX = world.pipe ? world.pipe.x : world.flag ? world.flag.x : level.levelLength;
@@ -590,6 +608,11 @@ function updateEnemies() {
 
 function updateFlytraps() {
   for (const trap of world.flytraps) {
+    if (!trap.hasTrap) {
+      trap.emerge = 0;
+      continue;
+    }
+
     trap.timer -= 1;
     if (trap.timer <= 0) {
       trap.visible = !trap.visible;
@@ -605,7 +628,7 @@ function handleFlytrapCollisions() {
   const playerRect = playerEnemyWorldRect();
 
   for (const trap of world.flytraps) {
-    if (trap.emerge < 0.18) continue;
+    if (!trap.hasTrap || trap.emerge < 0.18) continue;
 
     const centerX = trap.x + trap.pipeWidth / 2;
     const headW = trap.headWidth;
@@ -882,7 +905,7 @@ function drawFlytraps() {
     ctx.fillStyle = "#3cc95a";
     ctx.fillRect(pipeX - 5, pipeY, trap.pipeWidth + 10, 10);
 
-    if (trap.emerge < 0.12) continue;
+    if (!trap.hasTrap || trap.emerge < 0.12) continue;
 
     const centerX = pipeX + trap.pipeWidth / 2;
     const headW = trap.headWidth;
@@ -1115,7 +1138,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run 1.97!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat mini plumber run vrs 1.9.8!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     if (world.isNewHighScore) {
       ctx.fillText("New High Score!", canvas.width / 2, canvas.height / 2 + 6);
