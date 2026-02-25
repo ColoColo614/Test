@@ -94,6 +94,7 @@ const CHARACTER_PALETTES = {
     skin: "#f4be97",
     suit: "#223f9e",
     shoes: "#73301f",
+    body: "normal",
   },
   green: {
     name: "Green Suit",
@@ -101,6 +102,23 @@ const CHARACTER_PALETTES = {
     skin: "#f4be97",
     suit: "#2fbe57",
     shoes: "#5b3a1f",
+    body: "normal",
+  },
+  yellow: {
+    name: "Yellow Heavy",
+    hat: "#f0c21a",
+    skin: "#f1c49f",
+    suit: "#e6b61c",
+    shoes: "#6a4a22",
+    body: "fat",
+  },
+  purple: {
+    name: "Purple Slim",
+    hat: "#7e4cc9",
+    skin: "#efc09a",
+    suit: "#9658dd",
+    shoes: "#4f346f",
+    body: "skinny",
   },
 };
 
@@ -897,6 +915,35 @@ function drawFlytraps() {
     const pipeX = trap.x - world.offsetX;
     const pipeY = trap.groundY - trap.pipeHeight;
 
+    if (trap.hasTrap && trap.emerge >= 0.12) {
+      const centerX = pipeX + trap.pipeWidth / 2;
+      const headW = trap.headWidth;
+      const headH = trap.headHeight;
+      const headY = pipeY - headH * trap.emerge;
+
+      // Stem first (will be partially hidden by pipe cap drawn later)
+      ctx.fillStyle = "#2f8e39";
+      ctx.fillRect(centerX - 4, pipeY - 2, 8, -(headH * trap.emerge - 2));
+
+      // Green Venus head with open jaws
+      ctx.fillStyle = "#49b44f";
+      ctx.beginPath();
+      ctx.ellipse(centerX, headY + headH * 0.56, headW * 0.5, headH * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#9de59c";
+      ctx.beginPath();
+      ctx.ellipse(centerX + 3, headY + headH * 0.58, headW * 0.28, headH * 0.24, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f7fff6";
+      for (let t = -5; t <= 5; t += 5) {
+        ctx.fillRect(centerX + t - 1, headY + headH * 0.56, 2, 5);
+      }
+      ctx.fillStyle = "#1f2a1f";
+      ctx.fillRect(centerX + 5, headY + headH * 0.48, 2, 2);
+    }
+
     const bodyGradient = ctx.createLinearGradient(pipeX, pipeY, pipeX + trap.pipeWidth, pipeY);
     bodyGradient.addColorStop(0, "#2db54e");
     bodyGradient.addColorStop(1, "#1b7f33");
@@ -904,30 +951,6 @@ function drawFlytraps() {
     ctx.fillRect(pipeX, pipeY + 6, trap.pipeWidth, trap.pipeHeight - 6);
     ctx.fillStyle = "#3cc95a";
     ctx.fillRect(pipeX - 5, pipeY, trap.pipeWidth + 10, 10);
-
-    if (!trap.hasTrap || trap.emerge < 0.12) continue;
-
-    const centerX = pipeX + trap.pipeWidth / 2;
-    const headW = trap.headWidth;
-    const headH = trap.headHeight;
-    const headY = pipeY - headH * trap.emerge;
-
-    ctx.fillStyle = "#2aaf45";
-    ctx.fillRect(centerX - 5, pipeY - 2, 10, -(headH * trap.emerge - 2));
-
-    ctx.fillStyle = "#d42934";
-    ctx.beginPath();
-    ctx.ellipse(centerX, headY + headH * 0.55, headW * 0.48, headH * 0.52, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#ffd6db";
-    ctx.beginPath();
-    ctx.ellipse(centerX, headY + headH * 0.62, headW * 0.26, headH * 0.2, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(centerX - 7, headY + headH * 0.57, 3, 6);
-    ctx.fillRect(centerX + 4, headY + headH * 0.57, 3, 6);
   }
 }
 
@@ -1027,57 +1050,59 @@ function drawEnemies() {
   }
 }
 
-function drawCharacterSprite(x, y, palette, scale = 1) {
+function drawCharacterSprite(x, y, palette, scale = 1, animated = false) {
   const s = scale;
+  const time = animated ? performance.now() * 0.02 : 0;
+  const swing = animated ? Math.sin(time) * 3.2 * s : 0;
+
+  const bodyScale = palette.body === "fat" ? 1.18 : palette.body === "skinny" ? 0.84 : 1;
+  const torsoW = 16 * s * bodyScale;
+  const torsoX = 12 * s - torsoW / 2;
+
   ctx.save();
   ctx.translate(x, y);
 
-  // Hat + brim
+  // Side-view hat and brim
   ctx.fillStyle = palette.hat;
-  ctx.fillRect(8 * s, 1 * s, 22 * s, 12 * s);
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fillRect(6 * s, 12 * s, 26 * s, 3 * s);
+  ctx.fillRect(6 * s, 2 * s, 20 * s, 10 * s);
+  ctx.fillRect(18 * s, 10 * s, 10 * s, 3 * s);
 
-  // Face (rounded)
+  // Head side profile
   ctx.fillStyle = palette.skin;
   ctx.beginPath();
-  ctx.roundRect(9 * s, 14 * s, 20 * s, 16 * s, 4 * s);
+  ctx.roundRect(9 * s, 13 * s, 16 * s, 14 * s, 4 * s);
   ctx.fill();
-  ctx.fillStyle = "#2a1d16";
-  ctx.fillRect(14 * s, 20 * s, 2 * s, 2 * s);
-  ctx.fillRect(22 * s, 20 * s, 2 * s, 2 * s);
-  ctx.fillStyle = "#5b321f";
-  ctx.fillRect(13 * s, 25 * s, 12 * s, 2 * s);
+  ctx.fillStyle = "#1f1410";
+  ctx.fillRect(19 * s, 19 * s, 2 * s, 2 * s);
+  ctx.fillStyle = "#6a3c23";
+  ctx.fillRect(18 * s, 24 * s, 6 * s, 2 * s);
 
-  // Torso + overalls straps
+  // Torso/overalls (side view)
   ctx.fillStyle = palette.suit;
-  ctx.fillRect(7 * s, 30 * s, 24 * s, 21 * s);
-  ctx.fillStyle = "#2f3f70";
-  ctx.fillRect(10 * s, 30 * s, 4 * s, 11 * s);
-  ctx.fillRect(23 * s, 30 * s, 4 * s, 11 * s);
-  ctx.fillStyle = "#f1c44f";
-  ctx.fillRect(11 * s, 37 * s, 2 * s, 2 * s);
-  ctx.fillRect(24 * s, 37 * s, 2 * s, 2 * s);
+  ctx.fillRect(torsoX, 28 * s, torsoW, 20 * s);
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  ctx.fillRect(torsoX + 1.5 * s, 29 * s, torsoW * 0.36, 3 * s);
 
-  // Arms
+  // Arm
   ctx.fillStyle = palette.skin;
-  ctx.fillRect(4 * s, 34 * s, 4 * s, 12 * s);
-  ctx.fillRect(30 * s, 34 * s, 4 * s, 12 * s);
+  ctx.fillRect(8 * s, 31 * s, 4 * s, 11 * s);
 
-  // Legs + shoes
+  // Legs (animated run cycle)
   ctx.fillStyle = palette.suit;
-  ctx.fillRect(10 * s, 51 * s, 7 * s, 4 * s);
-  ctx.fillRect(21 * s, 51 * s, 7 * s, 4 * s);
+  ctx.fillRect(11 * s, 48 * s + swing * 0.15, 6 * s, 6 * s);
+  ctx.fillRect(20 * s, 48 * s - swing * 0.15, 6 * s, 6 * s);
+
+  // Shoes
   ctx.fillStyle = palette.shoes;
-  ctx.fillRect(7 * s, 54 * s, 11 * s, 4 * s);
-  ctx.fillRect(20 * s, 54 * s, 11 * s, 4 * s);
+  ctx.fillRect(9 * s, 54 * s + swing * 0.15, 9 * s, 3.8 * s);
+  ctx.fillRect(19 * s, 54 * s - swing * 0.15, 9 * s, 3.8 * s);
 
   ctx.restore();
 }
 
 function drawPlayer() {
   const palette = CHARACTER_PALETTES[world.selectedCharacter] || CHARACTER_PALETTES.classic;
-  drawCharacterSprite(player.x, player.y, palette, 1);
+  drawCharacterSprite(player.x, player.y, palette, 1, true);
 }
 
 function drawHUD() {
@@ -1138,7 +1163,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat mini plumber run vrs 1.9.8!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat Mini Plumber Run vrs 1.9.9!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     if (world.isNewHighScore) {
       ctx.fillText("New High Score!", canvas.width / 2, canvas.height / 2 + 6);
@@ -1200,23 +1225,28 @@ function drawCharacterSelectScreen() {
   ctx.font = "bold 42px Segoe UI";
   ctx.fillText("Choose Your Character", canvas.width / 2, 120);
   ctx.font = "22px Segoe UI";
-  ctx.fillText("Press 1 for Classic or 2 for Green Suit", canvas.width / 2, 160);
+  ctx.fillText("Press 1/2/3/4 for character selection", canvas.width / 2, 160);
 
-  const cardY = 220;
-  const leftX = 220;
-  const rightX = 560;
+  const cardY = 210;
+  const cardW = 160;
+  const gap = 40;
+  const startX = 80;
+  const xs = [startX, startX + cardW + gap, startX + (cardW + gap) * 2, startX + (cardW + gap) * 3];
 
   ctx.fillStyle = "rgba(255,255,255,0.12)";
-  ctx.fillRect(leftX, cardY, 180, 220);
-  ctx.fillRect(rightX, cardY, 180, 220);
+  for (const cx of xs) ctx.fillRect(cx, cardY, cardW, 230);
 
-  drawCharacterSprite(leftX + 56, cardY + 56, CHARACTER_PALETTES.classic, 2.2);
-  drawCharacterSprite(rightX + 56, cardY + 56, CHARACTER_PALETTES.green, 2.2);
+  drawCharacterSprite(xs[0] + 48, cardY + 52, CHARACTER_PALETTES.classic, 2.0);
+  drawCharacterSprite(xs[1] + 48, cardY + 52, CHARACTER_PALETTES.green, 2.0);
+  drawCharacterSprite(xs[2] + 48, cardY + 52, CHARACTER_PALETTES.yellow, 2.0);
+  drawCharacterSprite(xs[3] + 48, cardY + 52, CHARACTER_PALETTES.purple, 2.0);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "20px Segoe UI";
-  ctx.fillText("1 - Classic", leftX + 90, cardY + 198);
-  ctx.fillText("2 - Green Suit", rightX + 90, cardY + 198);
+  ctx.font = "18px Segoe UI";
+  ctx.fillText("1 - Classic", xs[0] + 80, cardY + 204);
+  ctx.fillText("2 - Green", xs[1] + 80, cardY + 204);
+  ctx.fillText("3 - Yellow", xs[2] + 80, cardY + 204);
+  ctx.fillText("4 - Purple", xs[3] + 80, cardY + 204);
   ctx.textAlign = "start";
 }
 
@@ -1238,9 +1268,9 @@ function render() {
     drawChunk(chunk);
   }
 
+  drawFlytraps();
   drawPipe();
   drawFlag();
-  drawFlytraps();
   drawCastle();
   drawStar();
   drawEnemies();
@@ -1265,6 +1295,8 @@ window.addEventListener("keydown", (event) => {
   if (world.awaitingCharacterSelect) {
     if (event.code === "Digit1" || event.code === "Numpad1") chooseCharacter("classic");
     if (event.code === "Digit2" || event.code === "Numpad2") chooseCharacter("green");
+    if (event.code === "Digit3" || event.code === "Numpad3") chooseCharacter("yellow");
+    if (event.code === "Digit4" || event.code === "Numpad4") chooseCharacter("purple");
     return;
   }
 
@@ -1315,8 +1347,11 @@ canvas.addEventListener("click", (event) => {
   const modeLeftX = 90;
   const modeCenterX = 390;
   const modeRightX = 690;
-  const charLeftX = 220;
-  const charRightX = 560;
+  const charW = 160;
+  const charH = 230;
+  const charStartX = 80;
+  const charGap = 40;
+  const charXs = [charStartX, charStartX + charW + charGap, charStartX + (charW + charGap) * 2, charStartX + (charW + charGap) * 3];
   const w = 180;
   const h = 220;
 
@@ -1329,6 +1364,8 @@ canvas.addEventListener("click", (event) => {
 
   if (!world.awaitingCharacterSelect) return;
 
-  if (x >= charLeftX && x <= charLeftX + w && y >= cardY && y <= cardY + h) chooseCharacter("classic");
-  if (x >= charRightX && x <= charRightX + w && y >= cardY && y <= cardY + h) chooseCharacter("green");
+  if (x >= charXs[0] && x <= charXs[0] + charW && y >= 210 && y <= 210 + charH) chooseCharacter("classic");
+  if (x >= charXs[1] && x <= charXs[1] + charW && y >= 210 && y <= 210 + charH) chooseCharacter("green");
+  if (x >= charXs[2] && x <= charXs[2] + charW && y >= 210 && y <= 210 + charH) chooseCharacter("yellow");
+  if (x >= charXs[3] && x <= charXs[3] + charW && y >= 210 && y <= 210 + charH) chooseCharacter("purple");
 });
