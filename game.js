@@ -89,7 +89,7 @@ const LEVELS = [
 
 const CHARACTER_PALETTES = {
   classic: {
-    name: "Classic",
+    name: "Mario",
     hat: "#d8342a",
     skin: "#f4be97",
     suit: "#223f9e",
@@ -97,15 +97,15 @@ const CHARACTER_PALETTES = {
     body: "normal",
   },
   green: {
-    name: "Green Suit",
+    name: "Luigi",
     hat: "#1f8f3a",
     skin: "#f4be97",
     suit: "#2fbe57",
     shoes: "#5b3a1f",
-    body: "normal",
+    body: "verySkinny",
   },
   yellow: {
-    name: "Yellow Heavy",
+    name: "Wario",
     hat: "#f0c21a",
     skin: "#f1c49f",
     suit: "#e6b61c",
@@ -113,7 +113,7 @@ const CHARACTER_PALETTES = {
     body: "fat",
   },
   purple: {
-    name: "Purple Slim",
+    name: "Waluigi",
     hat: "#7e4cc9",
     skin: "#efc09a",
     suit: "#9658dd",
@@ -1055,7 +1055,7 @@ function drawCharacterSprite(x, y, palette, scale = 1, animated = false) {
   const time = animated ? performance.now() * 0.02 : 0;
   const swing = animated ? Math.sin(time) * 3.2 * s : 0;
 
-  const bodyScale = palette.body === "fat" ? 1.18 : palette.body === "skinny" ? 0.84 : 1;
+  const bodyScale = palette.body === "fat" ? 1.18 : palette.body === "skinny" ? 0.84 : palette.body === "verySkinny" ? 0.6 : 1;
   const torsoW = 16 * s * bodyScale;
   const torsoX = 12 * s - torsoW / 2;
 
@@ -1163,7 +1163,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat Mini Plumber Run vrs 1.9.9!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat mini plumber run vrs 1.9.9.1!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     if (world.isNewHighScore) {
       ctx.fillText("New High Score!", canvas.width / 2, canvas.height / 2 + 6);
@@ -1243,10 +1243,10 @@ function drawCharacterSelectScreen() {
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "18px Segoe UI";
-  ctx.fillText("1 - Classic", xs[0] + 80, cardY + 204);
-  ctx.fillText("2 - Green", xs[1] + 80, cardY + 204);
-  ctx.fillText("3 - Yellow", xs[2] + 80, cardY + 204);
-  ctx.fillText("4 - Purple", xs[3] + 80, cardY + 204);
+  ctx.fillText("1 - Mario", xs[0] + 80, cardY + 204);
+  ctx.fillText("2 - Luigi", xs[1] + 80, cardY + 204);
+  ctx.fillText("3 - Wario", xs[2] + 80, cardY + 204);
+  ctx.fillText("4 - Waluigi", xs[3] + 80, cardY + 204);
   ctx.textAlign = "start";
 }
 

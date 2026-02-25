@@ -1,4 +1,4 @@
-# Mini Plumber Run vrs 1.9.9
+# mini plumber run vrs 1.9.9.1
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -17,10 +17,10 @@ Then open `http://localhost:8000`.
   - `2`: Hard Mode (+20% scroll, +10% score bonus)
   - `3`: Easy Mode (-20% scroll, -10% enemy speed, -15% move speed)
 - Then choose your character:
-  - `1`: Classic
-  - `2`: Green suit
-  - `3`: Yellow Heavy
-  - `4`: Purple Slim
+  - `1`: Mario
+  - `2`: Luigi
+  - `3`: Wario
+  - `4`: Waluigi
   - or click a card on screen
 
 - Survive jumps across wider-spaced gaps and platforms in **Level 1**, then enter the pipe with `↓`.
