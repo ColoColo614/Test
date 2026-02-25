@@ -386,7 +386,7 @@ function limitTerrainAfterObjective(chunks, objectiveX) {
   const endX = postObjectiveChunk.x + postObjectiveChunk.width;
 
   return chunks.filter((chunk) => {
-    if (chunk.kind === "platform" && chunk.x > objectiveX) return false;
+    if (chunk.kind === "platform" && chunk.x + chunk.width > objectiveX) return false;
     return chunk.x < endX;
   });
 }
@@ -870,18 +870,45 @@ function drawCharacterSprite(x, y, palette, scale = 1) {
   ctx.save();
   ctx.translate(x, y);
 
+  // Hat + brim
   ctx.fillStyle = palette.hat;
-  ctx.fillRect(8 * s, 0, 22 * s, 14 * s);
+  ctx.fillRect(8 * s, 1 * s, 22 * s, 12 * s);
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(6 * s, 12 * s, 26 * s, 3 * s);
 
+  // Face (rounded)
   ctx.fillStyle = palette.skin;
-  ctx.fillRect(9 * s, 14 * s, 20 * s, 16 * s);
+  ctx.beginPath();
+  ctx.roundRect(9 * s, 14 * s, 20 * s, 16 * s, 4 * s);
+  ctx.fill();
+  ctx.fillStyle = "#2a1d16";
+  ctx.fillRect(14 * s, 20 * s, 2 * s, 2 * s);
+  ctx.fillRect(22 * s, 20 * s, 2 * s, 2 * s);
+  ctx.fillStyle = "#5b321f";
+  ctx.fillRect(13 * s, 25 * s, 12 * s, 2 * s);
 
+  // Torso + overalls straps
   ctx.fillStyle = palette.suit;
-  ctx.fillRect(6 * s, 30 * s, 26 * s, 26 * s);
+  ctx.fillRect(7 * s, 30 * s, 24 * s, 21 * s);
+  ctx.fillStyle = "#2f3f70";
+  ctx.fillRect(10 * s, 30 * s, 4 * s, 11 * s);
+  ctx.fillRect(23 * s, 30 * s, 4 * s, 11 * s);
+  ctx.fillStyle = "#f1c44f";
+  ctx.fillRect(11 * s, 37 * s, 2 * s, 2 * s);
+  ctx.fillRect(24 * s, 37 * s, 2 * s, 2 * s);
 
+  // Arms
+  ctx.fillStyle = palette.skin;
+  ctx.fillRect(4 * s, 34 * s, 4 * s, 12 * s);
+  ctx.fillRect(30 * s, 34 * s, 4 * s, 12 * s);
+
+  // Legs + shoes
+  ctx.fillStyle = palette.suit;
+  ctx.fillRect(10 * s, 51 * s, 7 * s, 4 * s);
+  ctx.fillRect(21 * s, 51 * s, 7 * s, 4 * s);
   ctx.fillStyle = palette.shoes;
-  ctx.fillRect(5 * s, 50 * s, 10 * s, 6 * s);
-  ctx.fillRect(23 * s, 50 * s, 10 * s, 6 * s);
+  ctx.fillRect(7 * s, 54 * s, 11 * s, 4 * s);
+  ctx.fillRect(20 * s, 54 * s, 11 * s, 4 * s);
 
   ctx.restore();
 }
