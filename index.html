@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini Plumber Run vrs 1.9.9.4</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at top, #2f6ad7, #0e1f4d 70%);
+      }
+
+      .game-shell {
+        text-align: center;
+        color: #f6f8ff;
+      }
+
+      h1 {
+        margin: 0 0 0.25rem;
+        font-size: 1.6rem;
+      }
+
+      p {
+        margin: 0.2rem 0;
+        font-size: 0.95rem;
+      }
+
+      canvas {
+        margin-top: 0.75rem;
+        border: 3px solid #f6f8ff;
+        border-radius: 8px;
+        background: linear-gradient(#7dc6ff 0, #6db8ff 100%);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+      }
+
+      .hint {
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="game-shell">
+      <h1>Mini Plumber Run vrs 1.9.9.4</h1>
+      <p>Beat 5 longer levels, choose your mode + character, and survive denser antagonists in later levels.</p>
+      <p class="hint">Start: choose mode (1/2/3), then character (1/2/3/4), or click cards. Controls: ← → move, Space / ↑ jump, ↓ enter/drop through, R pause/restart, M change mode, C change character.</p>
+      <canvas id="game" width="960" height="540" aria-label="Mario-like platform game"></canvas>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
