@@ -181,6 +181,7 @@ const world = {
   hills: [],
   castle: null,
   flytraps: [],
+  isNight: false,
 };
 
 function currentLevel() {
@@ -509,6 +510,7 @@ function buildLevel(level) {
   world.star = placeStar(level, world.chunks, world.pipe, world.flag);
   world.hills = buildRandomHills(level);
   world.castle = buildCastle(world.chunks);
+  world.isNight = Math.random() < (level.id >= 4 ? 0.55 : 0.35);
 
   player.x = 180;
   player.y = world.chunks[0].y - player.h;
@@ -838,7 +840,17 @@ function drawBackground() {
   };
   const theme = themes[levelId] || themes[1];
 
-  ctx.fillStyle = theme.sun;
+  const skyBody = world.isNight
+    ? ctx.createLinearGradient(0, 0, 0, canvas.height)
+    : null;
+  if (skyBody) {
+    skyBody.addColorStop(0, "rgba(10, 20, 45, 0.8)");
+    skyBody.addColorStop(1, "rgba(25, 35, 70, 0.35)");
+    ctx.fillStyle = skyBody;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  ctx.fillStyle = world.isNight ? "#d8e6ff" : theme.sun;
   ctx.beginPath();
   ctx.arc(140, 96, 44, 0, Math.PI * 2);
   ctx.fill();
@@ -848,7 +860,7 @@ function drawBackground() {
     const wrappedX = ((x % 1800) + 1800) % 1800 - 300;
     const y = hill.y;
 
-    ctx.fillStyle = theme.hill;
+    ctx.fillStyle = world.isNight ? "#2a3f35" : theme.hill;
     ctx.beginPath();
     ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.28, 0, Math.PI, 0);
     ctx.lineTo(wrappedX + hill.width * 2, canvas.height);
@@ -870,7 +882,7 @@ function drawBackground() {
     const y = cloud.y;
     const r = 22 * cloud.s;
 
-    ctx.fillStyle = theme.cloud;
+    ctx.fillStyle = world.isNight ? "rgba(200,210,230,0.45)" : theme.cloud;
     ctx.beginPath();
     ctx.arc(baseX, y, r, 0, Math.PI * 2);
     ctx.arc(baseX + r * 0.9, y - 10, r * 0.85, 0, Math.PI * 2);

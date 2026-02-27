@@ -78,6 +78,7 @@ Then open `http://localhost:8000`.
 - Level 3 uses a mountainous background.
 - Level 4 uses a lush background.
 - Level 5 uses a corrupted background.
+- Some levels can now appear in nighttime lighting variants.
 
 - Each level has one hard-to-reach star that grants bonus points.
 - Each star gives slightly more points than defeating one enemy.
