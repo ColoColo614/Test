@@ -183,6 +183,7 @@ const world = {
   flytraps: [],
   isNight: false,
   pauseClock: 0,
+  endClock: 0,
 };
 
 function currentLevel() {
@@ -194,6 +195,7 @@ function currentMode() {
 }
 
 function animNow() {
+  if (world.gameOver) return world.endClock || world.pauseClock || performance.now();
   return world.paused ? world.pauseClock : performance.now();
 }
 
@@ -208,6 +210,7 @@ function finalizeRun(gameWon) {
   world.best = Math.max(world.best, finalScore);
   world.won = gameWon;
   world.gameOver = !gameWon;
+  world.endClock = performance.now();
 
 }
 
@@ -545,6 +548,8 @@ function restartGame() {
   world.transitioning = false;
   world.transitionTimer = 0;
   world.paused = false;
+  world.pauseClock = 0;
+  world.endClock = 0;
   world.isNewHighScore = false;
   world.dropThroughTimer = 0;
   world.standingOnPlatform = false;
@@ -852,25 +857,25 @@ function drawBackground() {
   ctx.fill();
 
   if (levelId === 3) {
-    // Jagged, pointy rocky mountains
-    const drift = (world.offsetX * 0.42) % 1600;
-    for (let i = -3; i < 10; i += 1) {
-      const baseX = i * 180 - drift;
-      const x = ((baseX % 1800) + 1800) % 1800 - 220;
-      const peak = 190 + (i % 2 === 0 ? 0 : 35);
-      ctx.fillStyle = world.isNight ? "#3f4658" : "#687387";
+    // Bigger, wider, denser jagged mountains
+    const drift = (world.offsetX * 0.42) % 1800;
+    for (let i = -5; i < 13; i += 1) {
+      const baseX = i * 132 - drift;
+      const x = ((baseX % 2000) + 2000) % 2000 - 320;
+      const peak = 132 + (i % 3) * 24;
+      ctx.fillStyle = world.isNight ? "#3d4356" : "#667287";
       ctx.beginPath();
       ctx.moveTo(x, canvas.height);
-      ctx.lineTo(x + 86, peak);
-      ctx.lineTo(x + 172, canvas.height);
+      ctx.lineTo(x + 122, peak);
+      ctx.lineTo(x + 244, canvas.height);
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = world.isNight ? "#515a70" : "#8d98ab";
+      ctx.fillStyle = world.isNight ? "#4e5770" : "#8a96ab";
       ctx.beginPath();
-      ctx.moveTo(x + 86, peak);
-      ctx.lineTo(x + 116, peak + 56);
-      ctx.lineTo(x + 72, peak + 74);
+      ctx.moveTo(x + 122, peak);
+      ctx.lineTo(x + 162, peak + 64);
+      ctx.lineTo(x + 98, peak + 88);
       ctx.closePath();
       ctx.fill();
     }
@@ -947,27 +952,73 @@ function drawBackground() {
 
 function drawChunk(chunk) {
   const x = chunk.x - world.offsetX;
+  const levelId = currentLevel().id;
+
+  const terrainPalette = {
+    1: {
+      groundTop: ["#7a5635", "#4f351f"],
+      grassDark: "#3f9d4f",
+      grassLight: "#73c57d",
+      platformOuter: "#9a3a2a",
+      platformInner: "#bd5b45",
+      platformStroke: "rgba(71, 22, 14, 0.65)",
+    },
+    2: {
+      groundTop: ["#d78d3f", "#a46224"],
+      grassDark: "#b8772b",
+      grassLight: "#e3ab56",
+      platformOuter: "#b37842",
+      platformInner: "#d4a270",
+      platformStroke: "rgba(94, 57, 25, 0.6)",
+    },
+    3: {
+      groundTop: ["#7d5537", "#5a3b23"],
+      grassDark: "#1f6130",
+      grassLight: "#3a884a",
+      platformOuter: "#84593a",
+      platformInner: "#a77b58",
+      platformStroke: "rgba(66, 42, 25, 0.62)",
+    },
+    4: {
+      groundTop: ["#4f694f", "#2f4030"],
+      grassDark: "#2d8167",
+      grassLight: "#5ca996",
+      platformOuter: "#486670",
+      platformInner: "#6e8e97",
+      platformStroke: "rgba(30, 52, 59, 0.62)",
+    },
+    5: {
+      groundTop: ["#6b4484", "#3e2553"],
+      grassDark: "#5f3372",
+      grassLight: "#8b5ba0",
+      platformOuter: "#5d3f39",
+      platformInner: "#7a5a56",
+      platformStroke: "rgba(56, 33, 64, 0.66)",
+    },
+  };
+
+  const palette = terrainPalette[levelId] || terrainPalette[1];
 
   if (chunk.kind === "ground") {
     const dirtGradient = ctx.createLinearGradient(0, chunk.y, 0, canvas.height);
-    dirtGradient.addColorStop(0, "#7a5635");
-    dirtGradient.addColorStop(1, "#4f351f");
+    dirtGradient.addColorStop(0, world.isNight ? "#4f3a2f" : palette.groundTop[0]);
+    dirtGradient.addColorStop(1, world.isNight ? "#2d1f1b" : palette.groundTop[1]);
     ctx.fillStyle = dirtGradient;
     ctx.fillRect(x, chunk.y, chunk.width, chunk.height);
 
-    ctx.fillStyle = "#3f9d4f";
+    ctx.fillStyle = world.isNight ? "#274d32" : palette.grassDark;
     ctx.fillRect(x, chunk.y - 10, chunk.width, 10);
-    ctx.fillStyle = "#73c57d";
+    ctx.fillStyle = world.isNight ? "#3d6848" : palette.grassLight;
     ctx.fillRect(x, chunk.y - 10, chunk.width, 3);
     return;
   }
 
-  ctx.fillStyle = "#9a3a2a";
+  ctx.fillStyle = world.isNight ? "#5a4a4a" : palette.platformOuter;
   ctx.fillRect(x, chunk.y, chunk.width, chunk.height);
-  ctx.fillStyle = "#bd5b45";
+  ctx.fillStyle = world.isNight ? "#7a6767" : palette.platformInner;
   ctx.fillRect(x + 2, chunk.y + 2, chunk.width - 4, chunk.height - 4);
 
-  ctx.strokeStyle = "rgba(71, 22, 14, 0.65)";
+  ctx.strokeStyle = world.isNight ? "rgba(40, 30, 45, 0.65)" : palette.platformStroke;
   ctx.lineWidth = 2;
   const rowA = chunk.y + 7;
   const rowB = chunk.y + 14;
@@ -1281,7 +1332,7 @@ function drawHUD() {
     ctx.fillStyle = "#ffefef";
     ctx.textAlign = "center";
     ctx.font = "bold 46px Segoe UI";
-    ctx.fillText(world.won ? "You Beat mini plumber run vrs 1.9.9.1!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillText(world.won ? "You Beat mini plumber run vrs 1.9.9.4!" : "You Lost!", canvas.width / 2, canvas.height / 2 - 30);
     ctx.font = "24px Segoe UI";
     if (world.isNewHighScore) {
       ctx.fillText("New High Score!", canvas.width / 2, canvas.height / 2 + 6);
