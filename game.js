@@ -182,6 +182,7 @@ const world = {
   castle: null,
   flytraps: [],
   isNight: false,
+  pauseClock: 0,
 };
 
 function currentLevel() {
@@ -190,6 +191,10 @@ function currentLevel() {
 
 function currentMode() {
   return RUN_MODES[world.selectedMode] || RUN_MODES.normal;
+}
+
+function animNow() {
+  return world.paused ? world.pauseClock : performance.now();
 }
 
 function addScore(points) {
@@ -467,13 +472,26 @@ function limitTerrainAfterObjective(chunks, objectiveX) {
   });
 }
 
-function buildCastle(chunks) {
+function buildCastle(chunks, pipe, flag) {
   const lastGround = [...chunks].filter((chunk) => chunk.kind === "ground").sort((a, b) => b.x - a.x)[0];
   if (!lastGround) return null;
 
   const width = 82;
   const height = 74;
-  const x = lastGround.x + Math.max(8, lastGround.width - width - 10);
+  let x = lastGround.x + Math.max(8, lastGround.width - width - 10);
+
+  if (pipe) {
+    const overlap = x + width > pipe.x - 6 && x < pipe.x + pipe.width + 6;
+    if (overlap) x = Math.max(lastGround.x + 8, pipe.x - width - 12);
+  }
+
+  if (flag) {
+    const flagLeft = flag.x - 16;
+    const flagRight = flag.x + 24;
+    const overlap = x + width > flagLeft && x < flagRight;
+    if (overlap) x = Math.max(lastGround.x + 8, flagLeft - width - 10);
+  }
+
   const y = lastGround.y - height;
   return { x, y, width, height };
 }
@@ -509,7 +527,7 @@ function buildLevel(level) {
   world.flytraps = buildFlytraps(level, world.chunks, objectiveX);
   world.star = placeStar(level, world.chunks, world.pipe, world.flag);
   world.hills = buildRandomHills(level);
-  world.castle = buildCastle(world.chunks);
+  world.castle = buildCastle(world.chunks, world.pipe, world.flag);
   world.isNight = Math.random() < (level.id >= 4 ? 0.55 : 0.35);
 
   player.x = 180;
@@ -812,37 +830,15 @@ function update() {
 function drawBackground() {
   const levelId = currentLevel().id;
   const themes = {
-    1: {
-      sun: "#ffd66b",
-      hill: "#4caf50",
-      cloud: "rgba(255,255,255,0.95)",
-    },
-    2: {
-      sun: "#f6bf5c",
-      hill: "#c8a35a",
-      cloud: "rgba(255,240,210,0.88)",
-    },
-    3: {
-      sun: "#e6ecff",
-      hill: "#6f7a8d",
-      cloud: "rgba(230,238,255,0.9)",
-    },
-    4: {
-      sun: "#fff2a8",
-      hill: "#3bb868",
-      cloud: "rgba(236,255,236,0.92)",
-    },
-    5: {
-      sun: "#cf66d8",
-      hill: "#5d376f",
-      cloud: "rgba(198,160,230,0.55)",
-    },
+    1: { sun: "#ffd66b", hill: "#4caf50", cloud: "rgba(255,255,255,0.95)" },
+    2: { sun: "#f6bf5c", hill: "#c8a35a", cloud: "rgba(255,240,210,0.88)" },
+    3: { sun: "#e6ecff", hill: "#6f7a8d", cloud: "rgba(230,238,255,0.9)" },
+    4: { sun: "#d7f4ff", hill: "#2e78b7", cloud: "rgba(236,255,255,0.92)" },
+    5: { sun: "#cf66d8", hill: "#5d376f", cloud: "rgba(198,160,230,0.55)" },
   };
   const theme = themes[levelId] || themes[1];
 
-  const skyBody = world.isNight
-    ? ctx.createLinearGradient(0, 0, 0, canvas.height)
-    : null;
+  const skyBody = world.isNight ? ctx.createLinearGradient(0, 0, 0, canvas.height) : null;
   if (skyBody) {
     skyBody.addColorStop(0, "rgba(10, 20, 45, 0.8)");
     skyBody.addColorStop(1, "rgba(25, 35, 70, 0.35)");
@@ -855,18 +851,75 @@ function drawBackground() {
   ctx.arc(140, 96, 44, 0, Math.PI * 2);
   ctx.fill();
 
-  for (const hill of world.hills) {
-    const x = hill.x - world.offsetX * hill.depth;
-    const wrappedX = ((x % 1800) + 1800) % 1800 - 300;
-    const y = hill.y;
+  if (levelId === 3) {
+    // Jagged, pointy rocky mountains
+    const drift = (world.offsetX * 0.42) % 1600;
+    for (let i = -3; i < 10; i += 1) {
+      const baseX = i * 180 - drift;
+      const x = ((baseX % 1800) + 1800) % 1800 - 220;
+      const peak = 190 + (i % 2 === 0 ? 0 : 35);
+      ctx.fillStyle = world.isNight ? "#3f4658" : "#687387";
+      ctx.beginPath();
+      ctx.moveTo(x, canvas.height);
+      ctx.lineTo(x + 86, peak);
+      ctx.lineTo(x + 172, canvas.height);
+      ctx.closePath();
+      ctx.fill();
 
-    ctx.fillStyle = world.isNight ? "#2a3f35" : theme.hill;
-    ctx.beginPath();
-    ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.28, 0, Math.PI, 0);
-    ctx.lineTo(wrappedX + hill.width * 2, canvas.height);
-    ctx.lineTo(wrappedX, canvas.height);
-    ctx.closePath();
-    ctx.fill();
+      ctx.fillStyle = world.isNight ? "#515a70" : "#8d98ab";
+      ctx.beginPath();
+      ctx.moveTo(x + 86, peak);
+      ctx.lineTo(x + 116, peak + 56);
+      ctx.lineTo(x + 72, peak + 74);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else {
+    for (const hill of world.hills) {
+      const x = hill.x - world.offsetX * hill.depth;
+      const wrappedX = ((x % 1800) + 1800) % 1800 - 300;
+      const y = hill.y;
+
+      ctx.fillStyle = world.isNight ? "#2a3f35" : theme.hill;
+      ctx.beginPath();
+      ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.28, 0, Math.PI, 0);
+      ctx.lineTo(wrappedX + hill.width * 2, canvas.height);
+      ctx.lineTo(wrappedX, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  if (levelId === 2) {
+    // Desert cactus silhouettes
+    const drift = (world.offsetX * 0.3) % 1500;
+    ctx.fillStyle = world.isNight ? "#456b48" : "#4d9a5d";
+    for (let i = -2; i < 9; i += 1) {
+      const baseX = i * 190 - drift;
+      const x = ((baseX % 1600) + 1600) % 1600 - 120;
+      const y = 378 + (i % 2) * 10;
+      ctx.fillRect(x, y, 14, 58);
+      ctx.fillRect(x - 12, y + 20, 10, 12);
+      ctx.fillRect(x + 14, y + 28, 10, 12);
+    }
+  }
+
+  if (levelId === 4) {
+    // Ocean bands and wave crests
+    ctx.fillStyle = world.isNight ? "rgba(31,76,118,0.55)" : "rgba(70,155,214,0.62)";
+    ctx.fillRect(0, 360, canvas.width, 130);
+    ctx.strokeStyle = world.isNight ? "rgba(190,220,255,0.35)" : "rgba(225,245,255,0.55)";
+    ctx.lineWidth = 2;
+    for (let row = 0; row < 4; row += 1) {
+      const y = 378 + row * 24;
+      ctx.beginPath();
+      for (let x = -20; x <= canvas.width + 20; x += 20) {
+        const wave = Math.sin((x + world.offsetX * 0.25 + row * 12) * 0.05) * 3;
+        if (x === -20) ctx.moveTo(x, y + wave);
+        else ctx.lineTo(x, y + wave);
+      }
+      ctx.stroke();
+    }
   }
 
   const cloudDrift = (world.offsetX * 0.18) % 1200;
@@ -962,7 +1015,7 @@ function drawFlytraps() {
       const headW = trap.headWidth;
       const headH = trap.headHeight;
       const headY = pipeY - headH * trap.emerge;
-      const mouthOpen = 2 + Math.abs(Math.sin(performance.now() * 0.01)) * 6;
+      const mouthOpen = 2 + Math.abs(Math.sin(animNow() * 0.01)) * 6;
 
       // Stem first (will be partially hidden by pipe cap drawn later)
       ctx.fillStyle = "#2f8e39";
@@ -1109,7 +1162,7 @@ function drawEnemies() {
 
 function drawCharacterSprite(x, y, palette, scale = 1, animated = false) {
   const s = scale;
-  const time = animated ? performance.now() * 0.028 : 0;
+  const time = animated ? animNow() * 0.028 : 0;
   const legPhase = animated ? Math.sin(time) : 0;
   const armPhase = animated ? Math.sin(time + Math.PI) : 0;
 
@@ -1386,6 +1439,7 @@ window.addEventListener("keydown", (event) => {
   }
 
   if (event.code === "KeyR") {
+    if (!world.paused) world.pauseClock = performance.now();
     world.paused = !world.paused;
   }
 });

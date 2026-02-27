@@ -1,4 +1,4 @@
-# Mini Plumber Run vrs 1.9.9.2
+# Mini Plumber Run vrs 1.9.9.3
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -76,7 +76,7 @@ Then open `http://localhost:8000`.
 - Land chunks between gaps now generate at varied altitudes.
 - Level 2 uses a desert-themed background.
 - Level 3 uses a mountainous background.
-- Level 4 uses a lush background.
+- Level 4 uses an ocean background.
 - Level 5 uses a corrupted background.
 - Some levels can now appear in nighttime lighting variants.
 
