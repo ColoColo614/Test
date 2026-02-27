@@ -808,7 +808,37 @@ function update() {
 }
 
 function drawBackground() {
-  ctx.fillStyle = "#ffd66b";
+  const levelId = currentLevel().id;
+  const themes = {
+    1: {
+      sun: "#ffd66b",
+      hill: "#4caf50",
+      cloud: "rgba(255,255,255,0.95)",
+    },
+    2: {
+      sun: "#f6bf5c",
+      hill: "#c8a35a",
+      cloud: "rgba(255,240,210,0.88)",
+    },
+    3: {
+      sun: "#e6ecff",
+      hill: "#6f7a8d",
+      cloud: "rgba(230,238,255,0.9)",
+    },
+    4: {
+      sun: "#fff2a8",
+      hill: "#3bb868",
+      cloud: "rgba(236,255,236,0.92)",
+    },
+    5: {
+      sun: "#cf66d8",
+      hill: "#5d376f",
+      cloud: "rgba(198,160,230,0.55)",
+    },
+  };
+  const theme = themes[levelId] || themes[1];
+
+  ctx.fillStyle = theme.sun;
   ctx.beginPath();
   ctx.arc(140, 96, 44, 0, Math.PI * 2);
   ctx.fill();
@@ -818,7 +848,7 @@ function drawBackground() {
     const wrappedX = ((x % 1800) + 1800) % 1800 - 300;
     const y = hill.y;
 
-    ctx.fillStyle = hill.color;
+    ctx.fillStyle = theme.hill;
     ctx.beginPath();
     ctx.ellipse(wrappedX + hill.width, y, hill.width, hill.width * 0.28, 0, Math.PI, 0);
     ctx.lineTo(wrappedX + hill.width * 2, canvas.height);
@@ -840,7 +870,7 @@ function drawBackground() {
     const y = cloud.y;
     const r = 22 * cloud.s;
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.fillStyle = theme.cloud;
     ctx.beginPath();
     ctx.arc(baseX, y, r, 0, Math.PI * 2);
     ctx.arc(baseX + r * 0.9, y - 10, r * 0.85, 0, Math.PI * 2);
@@ -920,28 +950,43 @@ function drawFlytraps() {
       const headW = trap.headWidth;
       const headH = trap.headHeight;
       const headY = pipeY - headH * trap.emerge;
+      const mouthOpen = 2 + Math.abs(Math.sin(performance.now() * 0.01)) * 6;
 
       // Stem first (will be partially hidden by pipe cap drawn later)
       ctx.fillStyle = "#2f8e39";
       ctx.fillRect(centerX - 4, pipeY - 2, 8, -(headH * trap.emerge - 2));
 
-      // Green Venus head with open jaws
-      ctx.fillStyle = "#49b44f";
+      // Green Venus flytrap jaws
+      ctx.fillStyle = "#3faa45";
       ctx.beginPath();
-      ctx.ellipse(centerX, headY + headH * 0.56, headW * 0.5, headH * 0.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(centerX - 4, headY + 15, headW * 0.32, headH * 0.28, -0.22, 0, Math.PI * 2);
+      ctx.ellipse(centerX + 4, headY + 15, headW * 0.32, headH * 0.28, 0.22, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = "#9de59c";
       ctx.beginPath();
-      ctx.ellipse(centerX + 3, headY + headH * 0.58, headW * 0.28, headH * 0.24, 0, 0, Math.PI * 2);
+      ctx.ellipse(centerX - 2.5, headY + 15, headW * 0.18, headH * 0.16, -0.22, 0, Math.PI * 2);
+      ctx.ellipse(centerX + 2.5, headY + 15, headW * 0.18, headH * 0.16, 0.22, 0, Math.PI * 2);
       ctx.fill();
 
+      // Mouth opening line
+      ctx.strokeStyle = "#183518";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX - 7, headY + 14 - mouthOpen * 0.2);
+      ctx.lineTo(centerX + 7, headY + 14 + mouthOpen * 0.2);
+      ctx.stroke();
+
+      // Teeth around mouth edge
       ctx.fillStyle = "#f7fff6";
-      for (let t = -5; t <= 5; t += 5) {
-        ctx.fillRect(centerX + t - 1, headY + headH * 0.56, 2, 5);
+      for (let i = -6; i <= 6; i += 3) {
+        ctx.fillRect(centerX + i - 0.6, headY + 11 - mouthOpen * 0.25, 1.2, 4);
+        ctx.fillRect(centerX + i - 0.6, headY + 17 + mouthOpen * 0.05, 1.2, 4);
       }
+
+      // Eye detail
       ctx.fillStyle = "#1f2a1f";
-      ctx.fillRect(centerX + 5, headY + headH * 0.48, 2, 2);
+      ctx.fillRect(centerX + 5, headY + 10, 2, 2);
     }
 
     const bodyGradient = ctx.createLinearGradient(pipeX, pipeY, pipeX + trap.pipeWidth, pipeY);
@@ -1052,8 +1097,9 @@ function drawEnemies() {
 
 function drawCharacterSprite(x, y, palette, scale = 1, animated = false) {
   const s = scale;
-  const time = animated ? performance.now() * 0.02 : 0;
-  const swing = animated ? Math.sin(time) * 3.2 * s : 0;
+  const time = animated ? performance.now() * 0.028 : 0;
+  const legPhase = animated ? Math.sin(time) : 0;
+  const armPhase = animated ? Math.sin(time + Math.PI) : 0;
 
   const bodyScale = palette.body === "fat" ? 1.18 : palette.body === "skinny" ? 0.84 : palette.body === "verySkinny" ? 0.6 : 1;
   const torsoW = 16 * s * bodyScale;
@@ -1083,19 +1129,26 @@ function drawCharacterSprite(x, y, palette, scale = 1, animated = false) {
   ctx.fillStyle = "rgba(255,255,255,0.18)";
   ctx.fillRect(torsoX + 1.5 * s, 29 * s, torsoW * 0.36, 3 * s);
 
-  // Arm
+  // Arm swing
   ctx.fillStyle = palette.skin;
-  ctx.fillRect(8 * s, 31 * s, 4 * s, 11 * s);
+  ctx.fillRect(8 * s + armPhase * 1.2 * s, 31 * s + Math.abs(armPhase) * 0.6 * s, 4 * s, 11 * s);
 
-  // Legs (animated run cycle)
+  // Legs under torso with stride
+  const hipX = 14.2 * s;
+  const upperY = 48 * s;
+  const stepA = legPhase * 2.2 * s;
+  const stepB = -legPhase * 2.2 * s;
   ctx.fillStyle = palette.suit;
-  ctx.fillRect(11 * s, 48 * s + swing * 0.15, 6 * s, 6 * s);
-  ctx.fillRect(20 * s, 48 * s - swing * 0.15, 6 * s, 6 * s);
+  ctx.fillRect(hipX - 3 * s + stepA * 0.35, upperY, 4 * s, 5.2 * s);
+  ctx.fillRect(hipX + 2 * s + stepB * 0.35, upperY, 4 * s, 5.2 * s);
 
-  // Shoes
+  // Lower legs + shoes for more realistic run cycle
+  ctx.fillRect(hipX - 4.5 * s + stepA * 0.75, upperY + 4.6 * s, 4 * s, 4.6 * s);
+  ctx.fillRect(hipX + 3.5 * s + stepB * 0.75, upperY + 4.6 * s, 4 * s, 4.6 * s);
+
   ctx.fillStyle = palette.shoes;
-  ctx.fillRect(9 * s, 54 * s + swing * 0.15, 9 * s, 3.8 * s);
-  ctx.fillRect(19 * s, 54 * s - swing * 0.15, 9 * s, 3.8 * s);
+  ctx.fillRect(hipX - 5.2 * s + stepA, upperY + 9 * s, 6.6 * s, 3.6 * s);
+  ctx.fillRect(hipX + 3.2 * s + stepB, upperY + 9 * s, 6.6 * s, 3.6 * s);
 
   ctx.restore();
 }

@@ -1,4 +1,4 @@
-# mini plumber run vrs 1.9.9.1
+# Mini Plumber Run vrs 1.9.9.2
 
 A side-scrolling browser game inspired by Mario-style platformers.
 
@@ -74,6 +74,10 @@ Then open `http://localhost:8000`.
 - In Hard Mode, enemies in Levels 1–4 are 10% faster.
 
 - Land chunks between gaps now generate at varied altitudes.
+- Level 2 uses a desert-themed background.
+- Level 3 uses a mountainous background.
+- Level 4 uses a lush background.
+- Level 5 uses a corrupted background.
 
 - Each level has one hard-to-reach star that grants bonus points.
 - Each star gives slightly more points than defeating one enemy.
